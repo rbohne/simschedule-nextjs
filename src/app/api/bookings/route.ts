@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 import type { Simulator } from '@/types/database'
 
@@ -151,8 +151,11 @@ export async function DELETE(request: Request) {
 
   const isAdmin = profile?.role === 'admin'
 
-  // Delete booking (RLS will check ownership unless admin)
-  const { error } = await supabase
+  // If admin, use admin client to bypass RLS and delete any booking
+  // Otherwise, use regular client which will be restricted by RLS to only delete own bookings
+  const clientToUse = isAdmin ? createAdminSupabaseClient() : supabase
+
+  const { error } = await clientToUse
     .from('bookings')
     .delete()
     .eq('id', parseInt(bookingId))

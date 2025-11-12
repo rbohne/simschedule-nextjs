@@ -42,6 +42,7 @@ export default function Home() {
   const [tournamentMessages, setTournamentMessages] = useState<TournamentMessage[]>([]);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [addingGuestFee, setAddingGuestFee] = useState<number | null>(null);
 
   const router = useRouter();
   const supabase = createClient();
@@ -287,6 +288,35 @@ export default function Home() {
       await loadBookings();
     } else {
       setError("Unable to cancel this booking.");
+    }
+  }
+
+  async function addGuestFee(bookingId: number, userId: string) {
+    setAddingGuestFee(bookingId);
+
+    try {
+      const response = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          bookingId,
+          type: "guest_fee",
+          amount: 20,
+          description: "Guest fee",
+        }),
+      });
+
+      if (response.ok) {
+        setSuccess("Guest fee ($20) added successfully!");
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError("Failed to add guest fee");
+      }
+    } catch (err) {
+      setError("Failed to add guest fee");
+    } finally {
+      setAddingGuestFee(null);
     }
   }
 
@@ -608,6 +638,16 @@ export default function Home() {
                                 Booked by{" "}
                                 {(booking.profile as Profile)?.name || "User"}
                               </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addGuestFee(booking.id, booking.user_id);
+                                }}
+                                disabled={addingGuestFee === booking.id}
+                                className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
+                              >
+                                {addingGuestFee === booking.id ? "Adding..." : "Guest +$20"}
+                              </button>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();

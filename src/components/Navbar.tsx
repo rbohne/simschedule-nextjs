@@ -143,6 +143,12 @@ export default function Navbar() {
                           >
                             Home Page Messages
                           </Link>
+                          <Link
+                            href="/payments"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 hover:text-blue-900"
+                          >
+                            User Payments
+                          </Link>
                         </div>
                       </div>
                     </div>
