@@ -318,15 +318,22 @@ export default function PaymentsPage() {
                         {trans.description}
                       </div>
                       {trans.booking && (
-                        <div className="text-xs text-gray-500">
-                          {new Date(
+                        <div className="text-sm text-blue-600 font-medium">
+                          Booking: {new Date(
                             trans.booking.start_time
-                          ).toLocaleDateString()}{" "}
+                          ).toLocaleString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true
+                          })}{" "}
                           - {trans.booking.simulator.toUpperCase()} SIM
                         </div>
                       )}
                       <div className="text-xs text-gray-400">
-                        {new Date(trans.created_at).toLocaleString()}
+                        Recorded: {new Date(trans.created_at).toLocaleString()}
                       </div>
                     </div>
                     <div
