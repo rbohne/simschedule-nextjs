@@ -140,6 +140,10 @@ export default function Navbar() {
                   </>
                 )}
                 <span className="text-blue-300">|</span>
+                <Link href="/profile" className="hover:text-blue-200">
+                  Profile
+                </Link>
+                <span className="text-blue-300">|</span>
                 <button
                   onClick={handleLogout}
                   className="hover:text-blue-200 transition-colors"
