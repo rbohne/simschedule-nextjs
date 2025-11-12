@@ -17,6 +17,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -30,6 +31,8 @@ export default function UsersPage() {
     password: "",
     role: "user",
   });
+
+  const [editUser, setEditUser] = useState<Profile | null>(null);
 
   const router = useRouter();
   const supabase = createClient();
@@ -125,6 +128,55 @@ export default function UsersPage() {
       }
     } catch (err) {
       setError("An error occurred while creating the user");
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
+  function openEditModal(user: Profile) {
+    setEditUser(user);
+    setShowEditModal(true);
+    setError(null);
+  }
+
+  function closeEditModal() {
+    setShowEditModal(false);
+    setEditUser(null);
+    setError(null);
+  }
+
+  async function handleEditUser(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editUser) return;
+
+    setError(null);
+    setIsProcessing(true);
+
+    try {
+      const response = await fetch("/api/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: editUser.id,
+          email: editUser.email,
+          name: editUser.name,
+          phone: editUser.phone,
+          role: editUser.role,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess("User updated successfully!");
+        await loadUsers();
+        closeEditModal();
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError(data.error || "Failed to update user");
+      }
+    } catch (err) {
+      setError("An error occurred while updating the user");
     } finally {
       setIsProcessing(false);
     }
@@ -262,6 +314,12 @@ export default function UsersPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
+                          onClick={() => openEditModal(user)}
+                          className="text-blue-600 hover:text-blue-900 mr-4"
+                        >
+                          Edit
+                        </button>
+                        <button
                           onClick={() => handleDeleteUser(user.id)}
                           disabled={user.id === currentUser?.id}
                           className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -380,6 +438,99 @@ export default function UsersPage() {
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50"
                 >
                   {isProcessing ? "Creating..." : "Add User"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && editUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Edit User</h2>
+              <button
+                onClick={closeEditModal}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleEditUser}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Name</label>
+                <input
+                  type="text"
+                  value={editUser.name || ""}
+                  onChange={(e) =>
+                    setEditUser({ ...editUser, name: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded px-3 py-2"
+                  required
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Email</label>
+                <input
+                  type="email"
+                  value={editUser.email || ""}
+                  onChange={(e) =>
+                    setEditUser({ ...editUser, email: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded px-3 py-2"
+                  required
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Phone</label>
+                <input
+                  type="tel"
+                  value={editUser.phone || ""}
+                  onChange={(e) =>
+                    setEditUser({ ...editUser, phone: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded px-3 py-2"
+                  placeholder="555-123-4567"
+                  required
+                />
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2">Role</label>
+                <select
+                  value={editUser.role}
+                  onChange={(e) =>
+                    setEditUser({
+                      ...editUser,
+                      role: e.target.value as "user" | "admin",
+                    })
+                  }
+                  className="w-full border border-gray-300 rounded px-3 py-2"
+                >
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessing}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50"
+                >
+                  {isProcessing ? "Updating..." : "Update User"}
                 </button>
               </div>
             </form>

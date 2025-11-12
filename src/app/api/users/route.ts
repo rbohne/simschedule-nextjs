@@ -98,6 +98,71 @@ export async function POST(request: Request) {
   return NextResponse.json({ success: true, user: newUser.user })
 }
 
+// PUT - Update a user (admin only)
+export async function PUT(request: Request) {
+  const supabase = await createServerSupabaseClient()
+
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Check if user is admin
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
+  }
+
+  const body = await request.json()
+  const { userId, email, name, phone, role } = body
+
+  if (!userId || !email || !name || !phone) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  // Create admin client for user update
+  const adminClient = createAdminSupabaseClient()
+
+  // Update user email in Supabase Auth if changed
+  const { error: updateAuthError } = await adminClient.auth.admin.updateUserById(
+    userId,
+    {
+      email,
+      user_metadata: {
+        name,
+        phone
+      }
+    }
+  )
+
+  if (updateAuthError) {
+    return NextResponse.json({ error: updateAuthError.message }, { status: 500 })
+  }
+
+  // Update profile
+  const { error: profileError } = await adminClient
+    .from('profiles')
+    .update({
+      email,
+      name,
+      phone,
+      role: role || 'user'
+    })
+    .eq('id', userId)
+
+  if (profileError) {
+    return NextResponse.json({ error: profileError.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
+}
+
 // DELETE - Delete a user (admin only)
 export async function DELETE(request: Request) {
   const supabase = await createServerSupabaseClient()

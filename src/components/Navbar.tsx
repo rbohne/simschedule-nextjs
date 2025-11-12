@@ -11,6 +11,7 @@ interface User {
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null)
+  const [userName, setUserName] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const router = useRouter()
@@ -21,15 +22,16 @@ export default function Navbar() {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       setUser(user)
 
-      // Check if user is admin
+      // Check if user is admin and get user's name
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, name')
           .eq('id', user.id)
           .single()
 
         setIsAdmin(profile?.role === 'admin')
+        setUserName(profile?.name || user.email?.split('@')[0] || '')
       }
 
       setLoading(false)
@@ -41,17 +43,19 @@ export default function Navbar() {
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
 
-      // Check admin role when auth state changes
+      // Check admin role and get name when auth state changes
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, name')
           .eq('id', session.user.id)
           .single()
 
         setIsAdmin(profile?.role === 'admin')
+        setUserName(profile?.name || session.user.email?.split('@')[0] || '')
       } else {
         setIsAdmin(false)
+        setUserName('')
       }
     })
 
@@ -83,10 +87,10 @@ export default function Navbar() {
           </Link>
 
           {/* Center - User Greeting */}
-          {user && (
+          {user && userName && (
             <div className="absolute left-1/2 transform -translate-x-1/2">
               <span className="text-lg font-semibold">
-                Hello, {user.email?.split('@')[0]}
+                Hello, {userName}
               </span>
             </div>
           )}

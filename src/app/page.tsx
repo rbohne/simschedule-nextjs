@@ -414,37 +414,6 @@ export default function Home() {
               })}
             </div>
 
-            {/* Alerts */}
-            {error && (
-              <div
-                className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex
-  justify-between items-center"
-              >
-                <span>{error}</span>
-                <button
-                  onClick={() => setError(null)}
-                  className="text-red-700 font-bold"
-                >
-                  ×
-                </button>
-              </div>
-            )}
-
-            {success && (
-              <div
-                className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded flex
-  justify-between items-center"
-              >
-                <span>{success}</span>
-                <button
-                  onClick={() => setSuccess(null)}
-                  className="text-green-700 font-bold"
-                >
-                  ×
-                </button>
-              </div>
-            )}
-
             {/* Legend and Actions */}
             <div className="mb-4 flex items-center gap-6 flex-wrap">
               <div className="flex items-center gap-2">
@@ -467,25 +436,60 @@ export default function Home() {
               </div>
             </div>
 
-            {selectedSlots.length > 0 && (
-              <div className="mb-4 flex items-center gap-4">
-                <span className="font-bold">
-                  Selected: {selectedSlots.length} hour(s)
-                </span>
-                <button
-                  onClick={bookSelectedSlots}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+            {/* Messages and Actions - Combined fixed height area */}
+            <div className="mb-4 space-y-3" style={{ minHeight: '116px' }}>
+              {/* Alerts */}
+              {error && (
+                <div
+                  className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex
+  justify-between items-center"
                 >
-                  Book Selected Times
-                </button>
-                <button
-                  onClick={() => setSelectedSlots([])}
-                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
+                  <span>{error}</span>
+                  <button
+                    onClick={() => setError(null)}
+                    className="text-red-700 font-bold"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+
+              {success && (
+                <div
+                  className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded flex
+  justify-between items-center"
                 >
-                  Clear
-                </button>
-              </div>
-            )}
+                  <span>{success}</span>
+                  <button
+                    onClick={() => setSuccess(null)}
+                    className="text-green-700 font-bold"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+
+              {/* Selected slots action bar */}
+              {selectedSlots.length > 0 && (
+                <div className="flex items-center gap-4">
+                  <span className="font-bold">
+                    Selected: {selectedSlots.length} hour(s)
+                  </span>
+                  <button
+                    onClick={bookSelectedSlots}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+                  >
+                    Book Selected Times
+                  </button>
+                  <button
+                    onClick={() => setSelectedSlots([])}
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Time Slots */}
             <div className="space-y-2">
