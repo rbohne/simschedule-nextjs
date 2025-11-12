@@ -91,7 +91,7 @@ export default function SettingsPage() {
             Administrator Configuration
           </p>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Users Card */}
             <Link href="/users">
               <div className="bg-white rounded-lg shadow-lg p-8 text-center hover:shadow-xl transition-shadow cursor-pointer border-2 border-transparent hover:border-blue-500">
@@ -121,6 +121,17 @@ export default function SettingsPage() {
                 <h3 className="text-2xl font-bold mb-2">Home Page Messages</h3>
                 <p className="text-gray-600">
                   Manage home page announcements
+                </p>
+              </div>
+            </Link>
+
+            {/* User Payments Card */}
+            <Link href="/payments">
+              <div className="bg-white rounded-lg shadow-lg p-8 text-center hover:shadow-xl transition-shadow cursor-pointer border-2 border-transparent hover:border-blue-500">
+                <div className="text-6xl mb-4">💵</div>
+                <h3 className="text-2xl font-bold mb-2">User Payments</h3>
+                <p className="text-gray-600">
+                  Manage guest fees and payments
                 </p>
               </div>
             </Link>
