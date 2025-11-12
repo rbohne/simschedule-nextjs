@@ -466,49 +466,107 @@ export default function Home() {
             </div>
 
             {/* Date Picker */}
-            <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
-              {[0, 1, 2, 3, 4, 5, 6].map((dayOffset) => {
-                const mstToday = getMSTNow();
-                mstToday.setHours(0, 0, 0, 0);
-                const date = new Date(mstToday);
-                date.setDate(date.getDate() + dayOffset);
-                const isSelected =
-                  date.toDateString() === selectedDate.toDateString();
-                const isTodayBadge = dayOffset === 0;
-
-                return (
+            <div className="mb-6">
+              {/* Admin Navigation Controls */}
+              {userProfile?.role === "admin" && (
+                <div className="flex items-center gap-2 mb-3">
                   <button
-                    key={dayOffset}
-                    onClick={() => selectDate(date)}
-                    className={`shrink-0 min-w-[100px] p-4 rounded-lg border-2 transition-all ${
-                      isSelected
-                        ? "bg-blue-600 text-white border-blue-600 font-bold"
-                        : "bg-white border-gray-300 hover:border-blue-600"
-                    }`}
+                    onClick={() => {
+                      const newDate = new Date(selectedDate);
+                      newDate.setDate(newDate.getDate() - 7);
+                      selectDate(newDate);
+                    }}
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-3 py-2 rounded"
                   >
-                    <div className="text-sm font-semibold uppercase">
-                      {date.toLocaleDateString("en-US", { weekday: "short" })}
-                    </div>
-                    <div className="text-lg mt-1">
-                      {date.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </div>
-                    {isTodayBadge && (
-                      <div
-                        className={`text-xs mt-2 px-2 py-1 rounded ${
-                          isSelected
-                            ? "bg-white text-blue-600"
-                            : "bg-green-500 text-white"
-                        }`}
-                      >
-                        Today
-                      </div>
-                    )}
+                    ← Previous Week
                   </button>
-                );
-              })}
+                  <button
+                    onClick={() => {
+                      const newDate = new Date(selectedDate);
+                      newDate.setDate(newDate.getDate() + 7);
+                      selectDate(newDate);
+                    }}
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-3 py-2 rounded"
+                  >
+                    Next Week →
+                  </button>
+                  <input
+                    type="date"
+                    value={selectedDate.toISOString().split('T')[0]}
+                    onChange={(e) => {
+                      const newDate = new Date(e.target.value + 'T12:00:00');
+                      selectDate(newDate);
+                    }}
+                    className="border border-gray-300 rounded px-3 py-2 ml-2"
+                  />
+                  <button
+                    onClick={() => selectDate(getMSTNow())}
+                    className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded"
+                  >
+                    Today
+                  </button>
+                </div>
+              )}
+
+              {/* Date Buttons */}
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {[0, 1, 2, 3, 4, 5, 6].map((dayOffset) => {
+                  // For admins, center the week around selected date
+                  // For users, show current week only
+                  let baseDate;
+                  if (userProfile?.role === "admin") {
+                    baseDate = new Date(selectedDate);
+                    baseDate.setHours(0, 0, 0, 0);
+                    // Start from 3 days before selected date
+                    baseDate.setDate(baseDate.getDate() - 3 + dayOffset);
+                  } else {
+                    const mstToday = getMSTNow();
+                    mstToday.setHours(0, 0, 0, 0);
+                    baseDate = new Date(mstToday);
+                    baseDate.setDate(baseDate.getDate() + dayOffset);
+                  }
+
+                  const date = baseDate;
+                  const isSelected =
+                    date.toDateString() === selectedDate.toDateString();
+                  const mstToday = getMSTNow();
+                  mstToday.setHours(0, 0, 0, 0);
+                  const isTodayBadge = date.toDateString() === mstToday.toDateString();
+
+                  return (
+                    <button
+                      key={dayOffset}
+                      onClick={() => selectDate(date)}
+                      className={`shrink-0 min-w-[100px] p-4 rounded-lg border-2 transition-all ${
+                        isSelected
+                          ? "bg-blue-600 text-white border-blue-600 font-bold"
+                          : "bg-white border-gray-300 hover:border-blue-600"
+                      }`}
+                    >
+                      <div className="text-sm font-semibold uppercase">
+                        {date.toLocaleDateString("en-US", { weekday: "short" })}
+                      </div>
+                      <div className="text-lg mt-1">
+                        {date.toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </div>
+                      {isTodayBadge && (
+                        <div
+                          className={`text-xs mt-2 px-2 py-1 rounded ${
+                            isSelected
+                              ? "bg-white text-blue-600"
+                              : "bg-green-500 text-white"
+                          }`}
+                        >
+                          Today
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Legend and Actions */}
@@ -594,8 +652,9 @@ export default function Home() {
                 const slotEndTime = new Date(timeSlot);
                 slotEndTime.setHours(slotEndTime.getHours() + 1);
 
+                // Only hide past slots for non-admin users
                 const isPastSlot = isToday && slotEndTime <= mstNow;
-                if (isPastSlot) return null;
+                if (isPastSlot && userProfile?.role !== "admin") return null;
 
                 const booking = bookings.find(
                   (b) => new Date(b.start_time).getTime() === timeSlot.getTime()
@@ -610,17 +669,18 @@ export default function Home() {
                 return (
                   <div
                     key={timeSlot.getTime()}
-                    onClick={() => !isBooked && toggleSlotSelection(timeSlot)}
-                    className={`p-4 rounded-lg border-2 transition-all cursor-pointer flex justify-between
-  items-center ${
-    isUserBooking
-      ? "bg-green-50 border-green-600"
-      : isBooked
-      ? "bg-blue-50 border-blue-600 cursor-default"
-      : isSelected
-      ? "bg-yellow-50 border-yellow-500 border-4"
-      : "bg-white border-gray-300 hover:border-green-500"
-  }`}
+                    onClick={() => !isBooked && !isPastSlot && toggleSlotSelection(timeSlot)}
+                    className={`p-4 rounded-lg border-2 transition-all flex justify-between items-center ${
+                      isPastSlot
+                        ? "bg-gray-100 border-gray-300 opacity-60"
+                        : isUserBooking
+                        ? "bg-green-50 border-green-600 cursor-pointer"
+                        : isBooked
+                        ? "bg-blue-50 border-blue-600 cursor-default"
+                        : isSelected
+                        ? "bg-yellow-50 border-yellow-500 border-4 cursor-pointer"
+                        : "bg-white border-gray-300 hover:border-green-500 cursor-pointer"
+                    }`}
                   >
                     <div className="font-bold text-lg">
                       {timeSlot.toLocaleTimeString("en-US", {
