@@ -18,13 +18,21 @@ export async function GET(request: Request) {
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
-  }
+  const isAdmin = profile?.role === 'admin'
 
   const { searchParams } = new URL(request.url)
   const userId = searchParams.get('userId')
   const action = searchParams.get('action')
+
+  // Allow users to fetch their own transactions
+  if (userId && userId !== user.id && !isAdmin) {
+    return NextResponse.json({ error: 'Forbidden - Can only view your own transactions' }, { status: 403 })
+  }
+
+  // Only admins can view balances for all users
+  if (action === 'balances' && !isAdmin) {
+    return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
+  }
 
   // Get user balances (sum of all transactions grouped by user)
   if (action === 'balances') {

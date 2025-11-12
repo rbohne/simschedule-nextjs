@@ -43,6 +43,7 @@ export default function Home() {
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [addingGuestFee, setAddingGuestFee] = useState<number | null>(null);
+  const [userBalance, setUserBalance] = useState(0);
 
   const router = useRouter();
   const supabase = createClient();
@@ -68,6 +69,24 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error loading tournament messages:', error);
+    }
+  }
+
+  async function loadUserBalance(userId: string) {
+    try {
+      const response = await fetch(`/api/transactions?userId=${userId}`);
+      if (response.ok) {
+        const transactions = await response.json();
+
+        // Calculate total balance from all transactions
+        const balance = transactions.reduce((sum: number, trans: any) => {
+          return sum + parseFloat(trans.amount);
+        }, 0);
+
+        setUserBalance(balance > 0 ? balance : 0);
+      }
+    } catch (error) {
+      console.error('Error loading user balance:', error);
     }
   }
 
@@ -99,6 +118,7 @@ export default function Home() {
         } else {
           setUser(user);
           loadUserProfile(user.id);
+          loadUserBalance(user.id);
           loadTournamentMessages();
           setLoading(false);
         }
@@ -371,6 +391,23 @@ export default function Home() {
                   <h3 className="text-3xl font-bold">WEST SIM</h3>
                 </button>
               </div>
+
+              {/* Guest Fees Balance */}
+              {userBalance > 0 && (
+                <div className="mt-8">
+                  <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-r-lg shadow-md text-center">
+                    <h3 className="text-xl font-semibold text-red-800 mb-2">
+                      Outstanding Guest Fees
+                    </h3>
+                    <p className="text-3xl font-bold text-red-600">
+                      ${userBalance.toFixed(2)}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Please pay your outstanding guest fees at your next visit
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Tournament Messages */}
               {tournamentMessages.filter(msg => msg.is_active).length > 0 && (
