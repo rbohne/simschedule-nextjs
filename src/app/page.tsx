@@ -397,13 +397,10 @@ export default function Home() {
                 <div className="mt-8">
                   <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-r-lg shadow-md text-center">
                     <h3 className="text-xl font-semibold text-red-800 mb-2">
-                      Outstanding Guest Fees
+                      Guest Fees Due
                     </h3>
                     <p className="text-3xl font-bold text-red-600">
                       ${userBalance.toFixed(2)}
-                    </p>
-                    <p className="text-sm text-gray-600 mt-2">
-                      Please pay your outstanding guest fees at your next visit
                     </p>
                   </div>
                 </div>
