@@ -1,0 +1,595 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
+import type { Simulator, Booking, Profile } from "@/types/database";
+
+// MST is UTC-7
+const MST_OFFSET = -7;
+
+function convertToMST(date: Date): Date {
+  const utc = date.getTime() + date.getTimezoneOffset() * 60000;
+  return new Date(utc + 3600000 * MST_OFFSET);
+}
+
+function getMSTNow(): Date {
+  return convertToMST(new Date());
+}
+
+interface TournamentMessage {
+  id: string;
+  message: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export default function Home() {
+  const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedSimulator, setSelectedSimulator] = useState<Simulator | null>(
+    null
+  );
+  const [selectedDate, setSelectedDate] = useState<Date>(getMSTNow());
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [selectedSlots, setSelectedSlots] = useState<Date[]>([]);
+  const [userTotalBookedHours, setUserTotalBookedHours] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [tournamentMessages, setTournamentMessages] = useState<TournamentMessage[]>([]);
+
+  const router = useRouter();
+  const supabase = createClient();
+
+  async function loadUserProfile(userId: string) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (data) {
+      setUserProfile(data);
+    }
+  }
+
+  async function loadTournamentMessages() {
+    try {
+      const response = await fetch('/api/tournament-messages');
+      const data = await response.json();
+      if (data.messages) {
+        setTournamentMessages(data.messages);
+      }
+    } catch (error) {
+      console.error('Error loading tournament messages:', error);
+    }
+  }
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        router.push("/login");
+      } else {
+        setUser(user);
+        loadUserProfile(user.id);
+        loadTournamentMessages();
+        setLoading(false);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function loadBookings() {
+    if (!selectedSimulator || !selectedDate) return;
+
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const { data } = await supabase
+      .from("bookings")
+      .select("*")
+      .eq("simulator", selectedSimulator)
+      .gte("start_time", startOfDay.toISOString())
+      .lte("start_time", endOfDay.toISOString())
+      .order("start_time", { ascending: true });
+
+    if (data) {
+      console.log("Loaded bookings:", data);
+      console.log("Current user ID:", user?.id);
+
+      // Fetch profiles for bookings if user is admin
+      if (userProfile?.role === "admin" && data.length > 0) {
+        const userIds = [...new Set(data.map((b) => b.user_id))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("*")
+          .in("id", userIds);
+
+        // Attach profiles to bookings
+        const bookingsWithProfiles = data.map((booking) => ({
+          ...booking,
+          profile: profiles?.find((p) => p.id === booking.user_id),
+        }));
+        setBookings(bookingsWithProfiles as Booking[]);
+      } else {
+        setBookings(data as Booking[]);
+      }
+    }
+
+    await loadUserTotalHours();
+  }
+
+  async function loadUserTotalHours() {
+    if (!user) return;
+
+    const now = new Date().toISOString();
+    const { data } = await supabase
+      .from("bookings")
+      .select("*")
+      .eq("user_id", user.id)
+      .gte("end_time", now);
+
+    setUserTotalBookedHours(data?.length || 0);
+  }
+
+  useEffect(() => {
+    if (selectedSimulator) {
+      loadBookings();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSimulator, selectedDate]);
+
+  function selectSimulator(simulator: Simulator) {
+    setSelectedSimulator(simulator);
+    setSelectedDate(getMSTNow());
+    setSelectedSlots([]);
+    setError(null);
+    setSuccess(null);
+  }
+
+  function clearSimulatorSelection() {
+    setSelectedSimulator(null);
+    setSelectedSlots([]);
+    setBookings([]);
+    setError(null);
+    setSuccess(null);
+  }
+
+  function selectDate(date: Date) {
+    setSelectedDate(date);
+    setSelectedSlots([]);
+    setError(null);
+    setSuccess(null);
+  }
+
+  function getTimeSlots(): Date[] {
+    const slots: Date[] = [];
+    const date = new Date(selectedDate);
+
+    for (let hour = 6; hour < 24; hour++) {
+      const slot = new Date(date);
+      slot.setHours(hour, 0, 0, 0);
+      slots.push(slot);
+    }
+
+    return slots;
+  }
+
+  function toggleSlotSelection(timeSlot: Date) {
+    const isBooked = bookings.some(
+      (b) => new Date(b.start_time).getTime() === timeSlot.getTime()
+    );
+
+    if (isBooked) return;
+
+    const isSelected = selectedSlots.some(
+      (s) => s.getTime() === timeSlot.getTime()
+    );
+
+    if (isSelected) {
+      setSelectedSlots(
+        selectedSlots.filter((s) => s.getTime() !== timeSlot.getTime())
+      );
+    } else if (userTotalBookedHours + selectedSlots.length < 2) {
+      setSelectedSlots([...selectedSlots, timeSlot]);
+    } else {
+      const remainingHours = 2 - userTotalBookedHours;
+      setError(
+        `You can only book a total of 2 hours. You currently have ${userTotalBookedHours} hour(s) booked and
+  ${remainingHours} hour(s) remaining.`
+      );
+    }
+  }
+
+  async function bookSelectedSlots() {
+    if (selectedSlots.length === 0 || !selectedSimulator) return;
+
+    setError(null);
+    setSuccess(null);
+
+    let successCount = 0;
+
+    for (const slot of selectedSlots) {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          simulator: selectedSimulator,
+          start_time: slot.toISOString(),
+        }),
+      });
+
+      if (response.ok) {
+        successCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      setSuccess(`Successfully booked ${successCount} time slot(s)!`);
+      setSelectedSlots([]);
+      await loadBookings();
+    } else {
+      setError(
+        "Unable to book the selected time slots. They may already be booked or you may have reached your total limit of 2 hours."
+      );
+    }
+  }
+
+  async function cancelBooking(bookingId: number) {
+    setError(null);
+    setSuccess(null);
+
+    const response = await fetch(`/api/bookings?id=${bookingId}`, {
+      method: "DELETE",
+    });
+
+    if (response.ok) {
+      setSuccess("Booking cancelled successfully!");
+      await loadBookings();
+    } else {
+      setError("Unable to cancel this booking.");
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!selectedSimulator) {
+    return (
+      <>
+        {/* Background Image */}
+        <div
+          className="fixed top-0 left-0 w-full h-full opacity-30 -z-10"
+          style={{
+            backgroundImage: "url('/images/golf-simulator-bg.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
+        />
+
+        <div className="min-h-screen py-12 relative z-10">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <h1 className="text-4xl font-bold mb-4 text-center">
+                Welcome to The Sim Guys Schedule
+              </h1>
+              <p className="text-xl text-gray-600 mb-8 text-center">
+                Select a simulator to view and book your time slots
+              </p>
+
+              <div className="grid md:grid-cols-2 gap-8 mt-12">
+                <button
+                  onClick={() => selectSimulator("east")}
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-12 text-center
+    transition-transform hover:scale-105 shadow-lg"
+                >
+                  <div className="text-6xl mb-4">📍</div>
+                  <h3 className="text-3xl font-bold">EAST SIM</h3>
+                </button>
+
+                <button
+                  onClick={() => selectSimulator("west")}
+                  className="bg-green-600 hover:bg-green-700 text-white rounded-lg p-12 text-center
+    transition-transform hover:scale-105 shadow-lg"
+                >
+                  <div className="text-6xl mb-4">📍</div>
+                  <h3 className="text-3xl font-bold">WEST SIM</h3>
+                </button>
+              </div>
+
+              {/* Tournament Messages */}
+              {tournamentMessages.length > 0 && (
+                <div className="mt-12">
+                  <h2 className="text-2xl font-bold mb-4 text-center">Upcoming Tournaments</h2>
+                  <div className="space-y-4">
+                    {tournamentMessages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg shadow-md"
+                      >
+                        <div
+                          className="text-gray-800 text-lg tournament-message"
+                          dangerouslySetInnerHTML={{ __html: msg.message }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const timeSlots = getTimeSlots();
+  const mstNow = getMSTNow();
+  const isToday = selectedDate.toDateString() === mstNow.toDateString();
+
+  return (
+    <>
+      {/* Background Image */}
+      <div
+        className="fixed top-0 left-0 w-full h-full opacity-30 -z-10"
+        style={{
+          backgroundImage: "url('/images/golf-simulator-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      />
+
+      <div className="min-h-screen py-8 relative z-10">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            {/* Header */}
+            <div className="mb-6 flex items-center justify-between">
+              <button
+                onClick={clearSimulatorSelection}
+                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+              >
+                ← Back to Simulator Selection
+              </button>
+              <h2 className="text-3xl font-bold">
+                {selectedSimulator.toUpperCase()} SIM
+              </h2>
+              <div className="w-48"></div>
+            </div>
+
+            {/* Date Picker */}
+            <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
+              {[0, 1, 2, 3, 4, 5, 6].map((dayOffset) => {
+                const mstToday = getMSTNow();
+                mstToday.setHours(0, 0, 0, 0);
+                const date = new Date(mstToday);
+                date.setDate(date.getDate() + dayOffset);
+                const isSelected =
+                  date.toDateString() === selectedDate.toDateString();
+                const isTodayBadge = dayOffset === 0;
+
+                return (
+                  <button
+                    key={dayOffset}
+                    onClick={() => selectDate(date)}
+                    className={`shrink-0 min-w-[100px] p-4 rounded-lg border-2 transition-all ${
+                      isSelected
+                        ? "bg-blue-600 text-white border-blue-600 font-bold"
+                        : "bg-white border-gray-300 hover:border-blue-600"
+                    }`}
+                  >
+                    <div className="text-sm font-semibold uppercase">
+                      {date.toLocaleDateString("en-US", { weekday: "short" })}
+                    </div>
+                    <div className="text-lg mt-1">
+                      {date.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </div>
+                    {isTodayBadge && (
+                      <div
+                        className={`text-xs mt-2 px-2 py-1 rounded ${
+                          isSelected
+                            ? "bg-white text-blue-600"
+                            : "bg-green-500 text-white"
+                        }`}
+                      >
+                        Today
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Alerts */}
+            {error && (
+              <div
+                className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex
+  justify-between items-center"
+              >
+                <span>{error}</span>
+                <button
+                  onClick={() => setError(null)}
+                  className="text-red-700 font-bold"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            {success && (
+              <div
+                className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded flex
+  justify-between items-center"
+              >
+                <span>{success}</span>
+                <button
+                  onClick={() => setSuccess(null)}
+                  className="text-green-700 font-bold"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            {/* Legend and Actions */}
+            <div className="mb-4 flex items-center gap-6 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-gray-200 text-gray-800 rounded text-sm">
+                  Available
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-blue-600 text-white rounded text-sm">
+                  Booked
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-green-600 text-white rounded text-sm">
+                  Your Booking
+                </span>
+              </div>
+              <div className="ml-auto font-bold">
+                Your Total Bookings: {userTotalBookedHours} / 2 hours
+              </div>
+            </div>
+
+            {selectedSlots.length > 0 && (
+              <div className="mb-4 flex items-center gap-4">
+                <span className="font-bold">
+                  Selected: {selectedSlots.length} hour(s)
+                </span>
+                <button
+                  onClick={bookSelectedSlots}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+                >
+                  Book Selected Times
+                </button>
+                <button
+                  onClick={() => setSelectedSlots([])}
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+
+            {/* Time Slots */}
+            <div className="space-y-2">
+              {timeSlots.map((timeSlot) => {
+                const slotEndTime = new Date(timeSlot);
+                slotEndTime.setHours(slotEndTime.getHours() + 1);
+
+                const isPastSlot = isToday && slotEndTime <= mstNow;
+                if (isPastSlot) return null;
+
+                const booking = bookings.find(
+                  (b) => new Date(b.start_time).getTime() === timeSlot.getTime()
+                );
+                const isBooked = !!booking;
+                const isUserBooking =
+                  isBooked && user && booking.user_id === user.id;
+                const isSelected = selectedSlots.some(
+                  (s) => s.getTime() === timeSlot.getTime()
+                );
+
+                return (
+                  <div
+                    key={timeSlot.getTime()}
+                    onClick={() => !isBooked && toggleSlotSelection(timeSlot)}
+                    className={`p-4 rounded-lg border-2 transition-all cursor-pointer flex justify-between
+  items-center ${
+    isUserBooking
+      ? "bg-green-50 border-green-600"
+      : isBooked
+      ? "bg-blue-50 border-blue-600 cursor-default"
+      : isSelected
+      ? "bg-yellow-50 border-yellow-500 border-4"
+      : "bg-white border-gray-300 hover:border-green-500"
+  }`}
+                  >
+                    <div className="font-bold text-lg">
+                      {timeSlot.toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}{" "}
+                      -{" "}
+                      {slotEndTime.toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {isBooked ? (
+                        <>
+                          {isUserBooking ? (
+                            <>
+                              <span className="px-3 py-1 bg-green-600 text-white rounded text-sm">
+                                Your Booking
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cancelBooking(booking.id);
+                                }}
+                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : userProfile?.role === "admin" ? (
+                            <>
+                              <span className="px-3 py-1 bg-blue-600 text-white rounded text-sm">
+                                Booked by{" "}
+                                {(booking.profile as Profile)?.name || "User"}
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cancelBooking(booking.id);
+                                }}
+                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <span className="px-3 py-1 bg-blue-600 text-white rounded text-sm">
+                              Booked
+                            </span>
+                          )}
+                        </>
+                      ) : isSelected ? (
+                        <span className="px-3 py-1 bg-yellow-500 text-white rounded text-sm">
+                          Selected
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">Available</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

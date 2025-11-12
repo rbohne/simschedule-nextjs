@@ -1,0 +1,128 @@
+import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { NextResponse } from 'next/server'
+import type { Simulator } from '@/types/database'
+
+// GET - Get bookings for a specific day and simulator
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const simulator = searchParams.get('simulator') as Simulator
+  const date = searchParams.get('date')
+
+  if (!simulator || !date) {
+    return NextResponse.json({ error: 'Missing parameters' }, { status: 400 })
+  }
+
+  const supabase = await createServerSupabaseClient()
+
+  const startOfDay = new Date(date)
+  startOfDay.setHours(0, 0, 0, 0)
+  const endOfDay = new Date(date)
+  endOfDay.setHours(23, 59, 59, 999)
+
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('*, profile:profiles(*)')
+    .eq('simulator', simulator)
+    .gte('start_time', startOfDay.toISOString())
+    .lte('start_time', endOfDay.toISOString())
+    .order('start_time', { ascending: true })
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json(data)
+}
+
+// POST - Create a new booking
+export async function POST(request: Request) {
+  const supabase = await createServerSupabaseClient()
+
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const body = await request.json()
+  const { simulator, start_time } = body
+
+  if (!simulator || !start_time) {
+    return NextResponse.json({ error: 'Missing parameters' }, { status: 400 })
+  }
+
+  // Check total booked hours (2 hour limit)
+  const now = new Date().toISOString()
+  const { data: existingBookings } = await supabase
+    .from('bookings')
+    .select('*')
+    .eq('user_id', user.id)
+    .gte('end_time', now)
+
+  if (existingBookings && existingBookings.length >= 2) {
+    return NextResponse.json({
+      error: 'You already have 2 hours booked. Please cancel a booking first.'
+    }, { status: 400 })
+  }
+
+  // Create booking
+  const startTime = new Date(start_time)
+  const endTime = new Date(startTime)
+  endTime.setHours(endTime.getHours() + 1)
+
+  const { data, error } = await supabase
+    .from('bookings')
+    .insert({
+      user_id: user.id,
+      simulator,
+      start_time: startTime.toISOString(),
+      end_time: endTime.toISOString(),
+    })
+    .select()
+    .single()
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json(data)
+}
+
+// DELETE - Cancel a booking
+export async function DELETE(request: Request) {
+  const supabase = await createServerSupabaseClient()
+
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const bookingId = searchParams.get('id')
+
+  if (!bookingId) {
+    return NextResponse.json({ error: 'Missing booking ID' }, { status: 400 })
+  }
+
+  // Check if user is admin
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const isAdmin = profile?.role === 'admin'
+
+  // Delete booking (RLS will check ownership unless admin)
+  const { error } = await supabase
+    .from('bookings')
+    .delete()
+    .eq('id', parseInt(bookingId))
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
+}

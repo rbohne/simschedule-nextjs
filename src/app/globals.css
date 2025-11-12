@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Tournament Message HTML Styling */
+.tournament-message h1,
+.tournament-message h2,
+.tournament-message h3,
+.tournament-message h4 {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: #1f2937;
+}
+
+.tournament-message h1 {
+  font-size: 2rem;
+}
+
+.tournament-message h2 {
+  font-size: 1.75rem;
+}
+
+.tournament-message h3 {
+  font-size: 1.5rem;
+}
+
+.tournament-message h4 {
+  font-size: 1.25rem;
+}
+
+.tournament-message p {
+  margin-bottom: 0.5rem;
+}
+
+.tournament-message strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+.tournament-message a {
+  color: #2563eb;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.tournament-message a:hover {
+  color: #1d4ed8;
+}
+
+.tournament-message ul,
+.tournament-message ol {
+  margin-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.tournament-message li {
+  margin-bottom: 0.25rem;
+}
