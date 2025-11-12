@@ -6,6 +6,7 @@ export interface Profile {
   email: string
   phone: string | null
   role: 'user' | 'admin'
+  profile_picture_url: string | null
   created_at: string
 }
 

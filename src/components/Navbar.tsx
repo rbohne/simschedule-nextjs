@@ -14,6 +14,7 @@ export default function Navbar() {
   const [userName, setUserName] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -62,6 +63,19 @@ export default function Navbar() {
     return () => subscription.unsubscribe()
   }, [supabase])
 
+  // Close user menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as HTMLElement
+      if (showUserMenu && !target.closest('.user-dropdown')) {
+        setShowUserMenu(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showUserMenu])
+
   async function handleLogout() {
     await supabase.auth.signOut()
     router.push('/login')
@@ -86,16 +100,7 @@ export default function Navbar() {
             <span className="text-xl font-bold">SIM Schedule</span>
           </Link>
 
-          {/* Center - User Greeting */}
-          {user && userName && (
-            <div className="absolute left-1/2 transform -translate-x-1/2">
-              <span className="text-lg font-semibold">
-                Hello, {userName}
-              </span>
-            </div>
-          )}
-
-          {/* Right Side - Navigation */}
+          {/* Navigation */}
           <div className="flex items-center gap-4">
             {user ? (
               <>
@@ -144,16 +149,48 @@ export default function Navbar() {
                   </>
                 )}
                 <span className="text-blue-300">|</span>
-                <Link href="/profile" className="hover:text-blue-200">
-                  Profile
-                </Link>
-                <span className="text-blue-300">|</span>
-                <button
-                  onClick={handleLogout}
-                  className="hover:text-blue-200 transition-colors"
+                <a
+                  href="/Terms-and-Conditions.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-blue-200"
+                  title="View Terms and Conditions"
                 >
-                  Logout
-                </button>
+                  📄 Terms & Conditions
+                </a>
+                <span className="text-blue-300">|</span>
+                {/* User Dropdown */}
+                <div className="relative user-dropdown">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="hover:text-blue-200 font-semibold flex items-center gap-1"
+                  >
+                    {userName}
+                    <span className="text-xs">▼</span>
+                  </button>
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50">
+                      <div className="py-1">
+                        <Link
+                          href="/profile"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 hover:text-blue-900"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          Profile
+                        </Link>
+                        <button
+                          onClick={() => {
+                            setShowUserMenu(false)
+                            handleLogout()
+                          }}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 hover:text-blue-900"
+                        >
+                          Logout
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <Link href="/login" className="hover:text-blue-200">

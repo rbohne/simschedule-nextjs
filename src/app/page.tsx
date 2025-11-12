@@ -40,6 +40,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [tournamentMessages, setTournamentMessages] = useState<TournamentMessage[]>([]);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
   const router = useRouter();
   const supabase = createClient();
@@ -69,16 +71,48 @@ export default function Home() {
   }
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
+    let mounted = true;
+
+    // Create a timeout to prevent hanging forever
+    const authTimeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.error('Auth check timed out, redirecting to login');
         router.push("/login");
-      } else {
-        setUser(user);
-        loadUserProfile(user.id);
-        loadTournamentMessages();
-        setLoading(false);
       }
-    });
+    }, 10000); // 10 second timeout
+
+    supabase.auth.getUser()
+      .then(({ data: { user }, error }) => {
+        if (!mounted) return;
+
+        clearTimeout(authTimeout);
+
+        if (error) {
+          console.error('Auth error:', error);
+          router.push("/login");
+          return;
+        }
+
+        if (!user) {
+          router.push("/login");
+        } else {
+          setUser(user);
+          loadUserProfile(user.id);
+          loadTournamentMessages();
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        clearTimeout(authTimeout);
+        console.error('Auth check failed:', err);
+        router.push("/login");
+      });
+
+    return () => {
+      mounted = false;
+      clearTimeout(authTimeout);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -309,11 +343,10 @@ export default function Home() {
               </div>
 
               {/* Tournament Messages */}
-              {tournamentMessages.length > 0 && (
+              {tournamentMessages.filter(msg => msg.is_active).length > 0 && (
                 <div className="mt-12">
-                  <h2 className="text-2xl font-bold mb-4 text-center">Upcoming Tournaments</h2>
                   <div className="space-y-4">
-                    {tournamentMessages.map((msg) => (
+                    {tournamentMessages.filter(msg => msg.is_active).map((msg) => (
                       <div
                         key={msg.id}
                         className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg shadow-md"
@@ -559,6 +592,18 @@ export default function Home() {
                             </>
                           ) : userProfile?.role === "admin" ? (
                             <>
+                              {(booking.profile as Profile)?.profile_picture_url && (
+                                <img
+                                  src={(booking.profile as Profile).profile_picture_url || ''}
+                                  alt={(booking.profile as Profile)?.name || 'User'}
+                                  className="w-10 h-10 rounded object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedImageUrl((booking.profile as Profile)?.profile_picture_url || null);
+                                    setShowImageModal(true);
+                                  }}
+                                />
+                              )}
                               <span className="px-3 py-1 bg-blue-600 text-white rounded text-sm">
                                 Booked by{" "}
                                 {(booking.profile as Profile)?.name || "User"}
@@ -594,6 +639,29 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Image Zoom Modal */}
+      {showImageModal && selectedImageUrl && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <button
+              onClick={() => setShowImageModal(false)}
+              className="absolute top-2 right-2 bg-white rounded-full w-8 h-8 flex items-center justify-center text-gray-700 hover:bg-gray-200 z-10"
+            >
+              ×
+            </button>
+            <img
+              src={selectedImageUrl}
+              alt="Profile picture"
+              className="max-w-full max-h-[90vh] object-contain rounded"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 }

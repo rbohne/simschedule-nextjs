@@ -33,41 +33,70 @@ export default function UsersPage() {
   });
 
   const [editUser, setEditUser] = useState<Profile | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
-    checkAuth();
+    let mounted = true;
+    const authTimeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.error('Auth check timed out, redirecting to login');
+        router.push("/login");
+      }
+    }, 10000);
+
+    checkAuth(mounted, authTimeout);
+
+    return () => {
+      mounted = false;
+      clearTimeout(authTimeout);
+    };
   }, []);
 
-  async function checkAuth() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  async function checkAuth(mounted: boolean, authTimeout: NodeJS.Timeout) {
+    try {
+      const {
+        data: { user },
+        error
+      } = await supabase.auth.getUser();
 
-    if (!user) {
+      if (!mounted) return;
+      clearTimeout(authTimeout);
+
+      if (error || !user) {
+        console.error('Auth error:', error);
+        router.push("/login");
+        return;
+      }
+
+      setCurrentUser(user);
+
+      // Check if user is admin
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.role !== "admin") {
+        router.push("/");
+        return;
+      }
+
+      setIsAdmin(true);
+      await loadUsers();
+      setLoading(false);
+    } catch (err) {
+      if (!mounted) return;
+      clearTimeout(authTimeout);
+      console.error('Auth check failed:', err);
       router.push("/login");
-      return;
     }
-
-    setCurrentUser(user);
-
-    // Check if user is admin
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profile?.role !== "admin") {
-      router.push("/");
-      return;
-    }
-
-    setIsAdmin(true);
-    await loadUsers();
-    setLoading(false);
   }
 
   async function loadUsers() {
@@ -136,13 +165,66 @@ export default function UsersPage() {
   function openEditModal(user: Profile) {
     setEditUser(user);
     setShowEditModal(true);
+    setSelectedFile(null);
     setError(null);
   }
 
   function closeEditModal() {
     setShowEditModal(false);
     setEditUser(null);
+    setSelectedFile(null);
     setError(null);
+  }
+
+  async function handleImageUpload(userId: string, file: File): Promise<string | null> {
+    try {
+      setUploadingImage(true);
+
+      // Validate file size (max 10MB for high quality)
+      if (file.size > 10 * 1024 * 1024) {
+        setError('Image file size must be less than 10MB');
+        return null;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('File must be an image');
+        return null;
+      }
+
+      // Create a unique filename preserving original extension
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Upload to Supabase Storage without compression
+      const { error: uploadError } = await supabase.storage
+        .from('profile-pictures')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: file.type
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        setError(`Failed to upload image: ${uploadError.message}`);
+        return null;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-pictures')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (err: any) {
+      console.error('Image upload error:', err);
+      setError(`Failed to upload image: ${err.message}`);
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
   }
 
   async function handleEditUser(e: React.FormEvent) {
@@ -153,6 +235,20 @@ export default function UsersPage() {
     setIsProcessing(true);
 
     try {
+      let profilePictureUrl = editUser.profile_picture_url;
+
+      // Upload image if a new file was selected
+      if (selectedFile) {
+        const uploadedUrl = await handleImageUpload(editUser.id, selectedFile);
+        if (uploadedUrl) {
+          profilePictureUrl = uploadedUrl;
+        } else {
+          // Upload failed, don't proceed
+          setIsProcessing(false);
+          return;
+        }
+      }
+
       const response = await fetch("/api/users", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -162,6 +258,7 @@ export default function UsersPage() {
           name: editUser.name,
           phone: editUser.phone,
           role: editUser.role,
+          profile_picture_url: profilePictureUrl,
         }),
       });
 
@@ -263,6 +360,9 @@ export default function UsersPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Picture
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -283,7 +383,7 @@ export default function UsersPage() {
                 {users.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={6}
                       className="px-6 py-4 text-center text-gray-500"
                     >
                       No users found
@@ -292,6 +392,23 @@ export default function UsersPage() {
                 ) : (
                   users.map((user) => (
                     <tr key={user.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {user.profile_picture_url ? (
+                          <img
+                            src={user.profile_picture_url}
+                            alt={user.name || 'User'}
+                            className="w-12 h-12 rounded object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => {
+                              setSelectedImageUrl(user.profile_picture_url);
+                              setShowImageModal(true);
+                            }}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded bg-gray-200 flex items-center justify-center text-gray-500 font-semibold">
+                            {(user.name || 'U').charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {user.name}
                       </td>
@@ -500,6 +617,41 @@ export default function UsersPage() {
                 />
               </div>
 
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Profile Picture</label>
+                {editUser.profile_picture_url && !selectedFile && (
+                  <div className="mb-2">
+                    <img
+                      src={editUser.profile_picture_url}
+                      alt="Current profile"
+                      className="w-20 h-20 rounded object-cover"
+                    />
+                  </div>
+                )}
+                {selectedFile && (
+                  <div className="mb-2">
+                    <img
+                      src={URL.createObjectURL(selectedFile)}
+                      alt="Preview"
+                      className="w-20 h-20 rounded object-cover"
+                    />
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setSelectedFile(e.target.files[0]);
+                    }
+                  }}
+                  className="w-full border border-gray-300 rounded px-3 py-2"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Upload a new profile picture (JPG, PNG, GIF)
+                </p>
+              </div>
+
               <div className="mb-6">
                 <label className="block text-sm font-medium mb-2">Role</label>
                 <select
@@ -534,6 +686,29 @@ export default function UsersPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Image Zoom Modal */}
+      {showImageModal && selectedImageUrl && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <button
+              onClick={() => setShowImageModal(false)}
+              className="absolute top-2 right-2 bg-white rounded-full w-8 h-8 flex items-center justify-center text-gray-700 hover:bg-gray-200 z-10"
+            >
+              ×
+            </button>
+            <img
+              src={selectedImageUrl}
+              alt="Profile picture"
+              className="max-w-full max-h-[90vh] object-contain rounded"
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         </div>
       )}

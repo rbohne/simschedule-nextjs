@@ -14,35 +14,60 @@ export default function SettingsPage() {
   const supabase = createClient()
 
   useEffect(() => {
-    checkAuth()
+    let mounted = true;
+    const authTimeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.error('Auth check timed out, redirecting to login');
+        router.push('/login')
+      }
+    }, 10000);
+
+    checkAuth(mounted, authTimeout)
+
+    return () => {
+      mounted = false;
+      clearTimeout(authTimeout);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function checkAuth() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+  async function checkAuth(mounted: boolean, authTimeout: NodeJS.Timeout) {
+    try {
+      const {
+        data: { user },
+        error
+      } = await supabase.auth.getUser()
 
-    if (!user) {
+      if (!mounted) return;
+      clearTimeout(authTimeout);
+
+      if (error || !user) {
+        console.error('Auth error:', error);
+        router.push('/login')
+        return
+      }
+
+      setUser(user)
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profile?.role !== 'admin') {
+        router.push('/')
+        return
+      }
+
+      setIsAdmin(true)
+      setLoading(false)
+    } catch (err) {
+      if (!mounted) return;
+      clearTimeout(authTimeout);
+      console.error('Auth check failed:', err);
       router.push('/login')
-      return
     }
-
-    setUser(user)
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profile?.role !== 'admin') {
-      router.push('/')
-      return
-    }
-
-    setIsAdmin(true)
-    setLoading(false)
   }
 
   if (loading) {

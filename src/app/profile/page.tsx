@@ -18,22 +18,52 @@ export default function ProfilePage() {
   const supabase = createClient()
 
   useEffect(() => {
-    checkAuth()
+    let mounted = true;
+    const authTimeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.error('Auth check timed out, redirecting to login');
+        router.push('/login')
+      }
+    }, 10000);
+
+    checkAuth(mounted, authTimeout)
+
+    return () => {
+      mounted = false;
+      clearTimeout(authTimeout);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function checkAuth() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+  async function checkAuth(mounted: boolean, authTimeout: NodeJS.Timeout) {
+    try {
+      const {
+        data: { user },
+        error
+      } = await supabase.auth.getUser()
 
-    if (!user) {
+      if (!mounted) return;
+      clearTimeout(authTimeout);
+
+      if (error) {
+        console.error('Auth error:', error);
+        router.push('/login')
+        return
+      }
+
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      setUser(user)
+      setLoading(false)
+    } catch (err) {
+      if (!mounted) return;
+      clearTimeout(authTimeout);
+      console.error('Auth check failed:', err);
       router.push('/login')
-      return
     }
-
-    setUser(user)
-    setLoading(false)
   }
 
   async function handlePasswordChange(e: React.FormEvent) {

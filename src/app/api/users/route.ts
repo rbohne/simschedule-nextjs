@@ -120,7 +120,7 @@ export async function PUT(request: Request) {
   }
 
   const body = await request.json()
-  const { userId, email, name, phone, role } = body
+  const { userId, email, name, phone, role, profile_picture_url } = body
 
   if (!userId || !email || !name || !phone) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -146,14 +146,21 @@ export async function PUT(request: Request) {
   }
 
   // Update profile
+  const updateData: any = {
+    email,
+    name,
+    phone,
+    role: role || 'user'
+  }
+
+  // Only update profile_picture_url if it's provided
+  if (profile_picture_url !== undefined) {
+    updateData.profile_picture_url = profile_picture_url
+  }
+
   const { error: profileError } = await adminClient
     .from('profiles')
-    .update({
-      email,
-      name,
-      phone,
-      role: role || 'user'
-    })
+    .update(updateData)
     .eq('id', userId)
 
   if (profileError) {
