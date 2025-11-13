@@ -10,6 +10,12 @@ export interface Profile {
   created_at: string
 }
 
+export interface GuestTransaction {
+  id: number
+  booking_id: number
+  amount: number
+}
+
 export interface Booking {
   id: number
   user_id: string
@@ -18,6 +24,7 @@ export interface Booking {
   end_time: string
   created_at: string
   profile?: Profile
+  guest_transactions?: GuestTransaction[]
 }
 
 export interface ContactMessage {

@@ -77,9 +77,20 @@ export default function Navbar() {
   }, [showUserMenu])
 
   async function handleLogout() {
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+    try {
+      // Try to sign out, but don't wait too long
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000))
+      ])
+    } catch (error) {
+      // If signOut fails or times out, continue anyway
+      console.log('SignOut error (continuing anyway):', error)
+    }
+
+    // Force a hard reload to /login to reinitialize the Supabase client
+    // This fixes issues when the session has expired and the client is in a broken state
+    window.location.href = '/login'
   }
 
   if (loading) {
@@ -97,7 +108,6 @@ export default function Navbar() {
               alt="The Cave Golf"
               className="h-18 w-auto"
             />
-            <span className="text-xl font-bold">Cave Schedule</span>
           </Link>
 
           {/* Navigation */}

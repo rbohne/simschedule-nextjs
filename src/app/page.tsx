@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
-import type { Simulator, Booking, Profile } from "@/types/database";
+import type { Simulator, Booking, Profile, GuestTransaction } from "@/types/database";
 
 // MST is UTC-7
 const MST_OFFSET = -7;
@@ -157,6 +157,23 @@ export default function Home() {
       console.log("Loaded bookings:", data);
       console.log("Current user ID:", user?.id);
 
+      // Fetch guest fee transactions for these bookings
+      const bookingIds = data.map((b) => b.id);
+      const { data: transactions } = await supabase
+        .from("user_transactions")
+        .select("id, booking_id, amount")
+        .in("booking_id", bookingIds)
+        .eq("type", "guest_fee");
+
+      // Group transactions by booking_id
+      const transactionsByBooking: { [key: number]: any[] } = {};
+      transactions?.forEach((t) => {
+        if (!transactionsByBooking[t.booking_id]) {
+          transactionsByBooking[t.booking_id] = [];
+        }
+        transactionsByBooking[t.booking_id].push(t);
+      });
+
       // Fetch profiles for bookings if user is admin
       if (userProfile?.role === "admin" && data.length > 0) {
         const userIds = [...new Set(data.map((b) => b.user_id))];
@@ -165,14 +182,20 @@ export default function Home() {
           .select("*")
           .in("id", userIds);
 
-        // Attach profiles to bookings
+        // Attach profiles and guest transactions to bookings
         const bookingsWithProfiles = data.map((booking) => ({
           ...booking,
           profile: profiles?.find((p) => p.id === booking.user_id),
+          guest_transactions: transactionsByBooking[booking.id] || [],
         }));
         setBookings(bookingsWithProfiles as Booking[]);
       } else {
-        setBookings(data as Booking[]);
+        // Attach guest transactions to bookings
+        const bookingsWithGuestInfo = data.map((booking) => ({
+          ...booking,
+          guest_transactions: transactionsByBooking[booking.id] || [],
+        }));
+        setBookings(bookingsWithGuestInfo as Booking[]);
       }
     }
 
@@ -330,6 +353,12 @@ export default function Home() {
       if (response.ok) {
         setSuccess("Guest fee ($20) added successfully!");
         setTimeout(() => setSuccess(null), 3000);
+        // Reload bookings to show the guest indicator
+        await loadBookings();
+        // Reload user balance if it's the current user
+        if (user && userId === user.id) {
+          await loadUserBalance(user.id);
+        }
       } else {
         setError("Failed to add guest fee");
       }
@@ -337,6 +366,29 @@ export default function Home() {
       setError("Failed to add guest fee");
     } finally {
       setAddingGuestFee(null);
+    }
+  }
+
+  async function removeGuestFee(transactionId: number, userId: string) {
+    try {
+      const response = await fetch(`/api/transactions?id=${transactionId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setSuccess("Guest fee removed successfully!");
+        setTimeout(() => setSuccess(null), 3000);
+        // Reload bookings to update the guest indicators
+        await loadBookings();
+        // Reload user balance if it's the current user
+        if (user && userId === user.id) {
+          await loadUserBalance(user.id);
+        }
+      } else {
+        setError("Failed to remove guest fee");
+      }
+    } catch (err) {
+      setError("Failed to remove guest fee");
     }
   }
 
@@ -586,9 +638,18 @@ export default function Home() {
                   Your Booking
                 </span>
               </div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl" style={{ filter: 'grayscale(100%) brightness(2.5)' }}>👤</span>
+                <span className="text-gray-300 text-sm">= Guest (click to remove)</span>
+              </div>
               <div className="ml-auto font-bold text-gray-200">
                 Your Total Bookings: {userTotalBookedHours} / 2 hours
               </div>
+            </div>
+
+            {/* Guest Fee Info Note */}
+            <div className="mb-4 bg-blue-900/30 border border-blue-700 text-blue-200 px-4 py-2 rounded text-sm">
+              <strong>💡 Guest Fee Info:</strong> Only click the "Guest +$20" button once per visit, not for each hour slot you've booked.
             </div>
 
             {/* Messages and Actions - Combined fixed height area */}
@@ -701,9 +762,37 @@ export default function Home() {
                         <>
                           {isUserBooking ? (
                             <>
+                              {booking.guest_transactions && booking.guest_transactions.length > 0 && (
+                                <div className="flex gap-1">
+                                  {booking.guest_transactions.map((transaction) => (
+                                    <button
+                                      key={transaction.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        removeGuestFee(transaction.id, booking.user_id);
+                                      }}
+                                      className="text-2xl hover:opacity-60 transition-opacity"
+                                      style={{ filter: 'grayscale(100%) brightness(2.5)' }}
+                                      title="Click to remove this guest ($20)"
+                                    >
+                                      👤
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                               <span className="px-3 py-1 bg-green-800 text-gray-100 rounded text-sm border border-green-700">
                                 Your Booking
                               </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addGuestFee(booking.id, booking.user_id);
+                                }}
+                                disabled={addingGuestFee === booking.id}
+                                className="bg-purple-800 hover:bg-purple-700 text-gray-100 px-3 py-1 rounded text-sm disabled:opacity-50"
+                              >
+                                {addingGuestFee === booking.id ? "Adding..." : "Guest +$20"}
+                              </button>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -716,6 +805,24 @@ export default function Home() {
                             </>
                           ) : userProfile?.role === "admin" ? (
                             <>
+                              {booking.guest_transactions && booking.guest_transactions.length > 0 && (
+                                <div className="flex gap-1">
+                                  {booking.guest_transactions.map((transaction) => (
+                                    <button
+                                      key={transaction.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        removeGuestFee(transaction.id, booking.user_id);
+                                      }}
+                                      className="text-2xl hover:opacity-60 transition-opacity"
+                                      style={{ filter: 'grayscale(100%) brightness(2.5)' }}
+                                      title="Click to remove this guest ($20)"
+                                    >
+                                      👤
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                               {(booking.profile as Profile)?.profile_picture_url && (
                                 <img
                                   src={(booking.profile as Profile).profile_picture_url || ''}

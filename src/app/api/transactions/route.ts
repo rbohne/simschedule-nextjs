@@ -111,15 +111,24 @@ export async function POST(request: Request) {
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
-  }
+  const isAdmin = profile?.role === 'admin'
 
   const body = await request.json()
   const { userId, bookingId, type, amount, description } = body
 
   if (!userId || !type || !amount) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  // Allow users to add guest fees for their own bookings
+  // Only admins can add fees for other users or non-guest-fee types
+  if (!isAdmin) {
+    if (userId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden - Can only add fees to your own bookings' }, { status: 403 })
+    }
+    if (type !== 'guest_fee') {
+      return NextResponse.json({ error: 'Forbidden - Users can only add guest fees' }, { status: 403 })
+    }
   }
 
   const adminClient = createAdminSupabaseClient()
@@ -142,4 +151,64 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json(data)
+}
+
+// DELETE - Remove a transaction (guest fee)
+export async function DELETE(request: Request) {
+  const supabase = await createServerSupabaseClient()
+
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const transactionId = searchParams.get('id')
+
+  if (!transactionId) {
+    return NextResponse.json({ error: 'Missing transaction ID' }, { status: 400 })
+  }
+
+  const adminClient = createAdminSupabaseClient()
+
+  // Get the transaction to check ownership
+  const { data: transaction } = await adminClient
+    .from('user_transactions')
+    .select('user_id, type')
+    .eq('id', transactionId)
+    .single()
+
+  if (!transaction) {
+    return NextResponse.json({ error: 'Transaction not found' }, { status: 404 })
+  }
+
+  // Check if user is admin
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const isAdmin = profile?.role === 'admin'
+
+  // Users can only delete their own guest fees, admins can delete anything
+  if (!isAdmin && transaction.user_id !== user.id) {
+    return NextResponse.json({ error: 'Forbidden - Can only delete your own transactions' }, { status: 403 })
+  }
+
+  if (!isAdmin && transaction.type !== 'guest_fee') {
+    return NextResponse.json({ error: 'Forbidden - Users can only delete guest fees' }, { status: 403 })
+  }
+
+  const { error } = await adminClient
+    .from('user_transactions')
+    .delete()
+    .eq('id', transactionId)
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
 }

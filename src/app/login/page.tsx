@@ -37,14 +37,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900">
-      <div className="max-w-md w-full space-y-8 p-8 bg-gray-800 rounded-lg shadow-xl border border-gray-700">
+    <div className="min-h-screen flex items-start justify-center bg-black pt-12">
+      <div className="max-w-md w-full space-y-8 p-8 bg-black">
         <div>
           <div className="flex justify-center mb-6">
             <img
               src="/images/TheCave_LOGO.png"
               alt="The Cave Golf"
-              className="h-48 w-auto"
+              className="h-72 w-auto"
             />
           </div>
           <h2 className="text-3xl font-bold text-center text-gray-100">Sign In</h2>

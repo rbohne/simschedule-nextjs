@@ -31,7 +31,10 @@ export default function PaymentsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showTransactionsModal, setShowTransactionsModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [adjustAmount, setAdjustAmount] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
   const router = useRouter();
@@ -125,6 +128,13 @@ export default function PaymentsPage() {
     setShowPaymentModal(true);
   }
 
+  function openAdjustModal(user: UserBalance) {
+    setSelectedUser(user);
+    setAdjustAmount("");
+    setAdjustReason("");
+    setShowAdjustModal(true);
+  }
+
   async function handleAddPayment(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedUser || !paymentAmount) return;
@@ -166,6 +176,51 @@ export default function PaymentsPage() {
     }
   }
 
+  async function handleAdjustBalance(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedUser || !adjustAmount) return;
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const newBalance = parseFloat(adjustAmount);
+      if (isNaN(newBalance) || newBalance < 0) {
+        setError("Please enter a valid amount (0 or greater)");
+        setIsProcessing(false);
+        return;
+      }
+
+      // Calculate the adjustment needed
+      const currentBalance = selectedUser.balance;
+      const adjustmentAmount = newBalance - currentBalance;
+
+      const response = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: selectedUser.id,
+          type: "adjustment",
+          amount: adjustmentAmount,
+          description: adjustReason || `Balance adjusted from $${currentBalance.toFixed(2)} to $${newBalance.toFixed(2)}`,
+        }),
+      });
+
+      if (response.ok) {
+        setSuccess("Balance adjusted successfully!");
+        await loadBalances();
+        setShowAdjustModal(false);
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError("Failed to adjust balance");
+      }
+    } catch (err) {
+      setError("An error occurred while adjusting balance");
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -179,18 +234,18 @@ export default function PaymentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-900 py-8">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6">User Payments</h1>
+          <h1 className="text-3xl font-bold mb-6 text-gray-100">User Payments</h1>
 
           {/* Alerts */}
           {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex justify-between items-center">
+            <div className="mb-4 bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded flex justify-between items-center">
               <span>{error}</span>
               <button
                 onClick={() => setError(null)}
-                className="text-red-700 font-bold"
+                className="text-red-200 font-bold"
               >
                 ×
               </button>
@@ -198,11 +253,11 @@ export default function PaymentsPage() {
           )}
 
           {success && (
-            <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded flex justify-between items-center">
+            <div className="mb-4 bg-green-900/50 border border-green-700 text-green-200 px-4 py-3 rounded flex justify-between items-center">
               <span>{success}</span>
               <button
                 onClick={() => setSuccess(null)}
-                className="text-green-700 font-bold"
+                className="text-green-200 font-bold"
               >
                 ×
               </button>
@@ -210,40 +265,40 @@ export default function PaymentsPage() {
           )}
 
           {/* Users with Balances Table */}
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-700">
+              <thead className="bg-gray-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Email
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Phone
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Outstanding Balance
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-gray-800 divide-y divide-gray-700">
                 {userBalances.length === 0 ? (
                   <tr>
                     <td
                       colSpan={5}
-                      className="px-6 py-4 text-center text-gray-500"
+                      className="px-6 py-4 text-center text-gray-400"
                     >
                       No outstanding balances
                     </td>
                   </tr>
                 ) : (
                   userBalances.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
+                    <tr key={user.id} className="hover:bg-gray-700 text-gray-200">
                       <td className="px-6 py-4 whitespace-nowrap font-medium">
                         {user.name}
                       </td>
@@ -254,23 +309,34 @@ export default function PaymentsPage() {
                         {user.phone}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-lg font-bold text-red-600">
+                        <span className="text-lg font-bold text-red-400">
                           ${user.balance.toFixed(2)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <button
-                          onClick={() => openTransactionsModal(user)}
-                          className="text-blue-600 hover:text-blue-900 mr-4"
-                        >
-                          View History
-                        </button>
-                        <button
-                          onClick={() => openPaymentModal(user)}
-                          className="text-green-600 hover:text-green-900"
-                        >
-                          Add Payment
-                        </button>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => openTransactionsModal(user)}
+                            className="text-2xl text-blue-400 hover:text-blue-300 transition-colors"
+                            title="View History"
+                          >
+                            📊
+                          </button>
+                          <button
+                            onClick={() => openPaymentModal(user)}
+                            className="text-2xl text-green-400 hover:text-green-300 transition-colors"
+                            title="Add Payment"
+                          >
+                            💵
+                          </button>
+                          <button
+                            onClick={() => openAdjustModal(user)}
+                            className="text-2xl text-yellow-400 hover:text-yellow-300 transition-colors"
+                            title="Adjust Balance"
+                          >
+                            ⚙️
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -284,14 +350,14 @@ export default function PaymentsPage() {
       {/* Transactions Modal */}
       {showTransactionsModal && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-3xl w-full p-6 max-h-[80vh] overflow-y-auto">
+          <div className="bg-gray-800 rounded-lg max-w-3xl w-full p-6 max-h-[80vh] overflow-y-auto border border-gray-700">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">
+              <h2 className="text-xl font-bold text-gray-100">
                 Transaction History - {selectedUser.name}
               </h2>
               <button
                 onClick={() => setShowTransactionsModal(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-400 hover:text-gray-200 text-2xl"
               >
                 ×
               </button>
@@ -299,26 +365,26 @@ export default function PaymentsPage() {
 
             <div className="space-y-3">
               {transactions.length === 0 ? (
-                <p className="text-gray-500">No transactions found</p>
+                <p className="text-gray-400">No transactions found</p>
               ) : (
                 transactions.map((trans) => (
                   <div
                     key={trans.id}
-                    className="border rounded p-3 flex justify-between items-center"
+                    className="bg-gray-700 border border-gray-600 rounded p-3 flex justify-between items-center"
                   >
                     <div>
-                      <div className="font-semibold">
+                      <div className="font-semibold text-gray-100">
                         {trans.type === "guest_fee"
                           ? "Guest Fee"
                           : trans.type === "payment"
                           ? "Payment"
                           : "Adjustment"}
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-300">
                         {trans.description}
                       </div>
                       {trans.booking && (
-                        <div className="text-sm text-blue-600 font-medium">
+                        <div className="text-sm text-blue-400 font-medium">
                           Booking: {new Date(
                             trans.booking.start_time
                           ).toLocaleString("en-US", {
@@ -332,13 +398,13 @@ export default function PaymentsPage() {
                           - {trans.booking.simulator.toUpperCase()} SIM
                         </div>
                       )}
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-gray-500">
                         Recorded: {new Date(trans.created_at).toLocaleString()}
                       </div>
                     </div>
                     <div
                       className={`text-lg font-bold ${
-                        trans.amount > 0 ? "text-red-600" : "text-green-600"
+                        trans.amount > 0 ? "text-red-400" : "text-green-400"
                       }`}
                     >
                       {trans.amount > 0 ? "+" : ""}$
@@ -352,7 +418,7 @@ export default function PaymentsPage() {
             <div className="mt-4 text-right">
               <button
                 onClick={() => setShowTransactionsModal(false)}
-                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
+                className="bg-gray-700 hover:bg-gray-600 text-gray-100 px-4 py-2 rounded border border-gray-600"
               >
                 Close
               </button>
@@ -364,23 +430,23 @@ export default function PaymentsPage() {
       {/* Payment Modal */}
       {showPaymentModal && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="bg-gray-800 rounded-lg max-w-md w-full p-6 border border-gray-700">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">
+              <h2 className="text-xl font-bold text-gray-100">
                 Add Payment - {selectedUser.name}
               </h2>
               <button
                 onClick={() => setShowPaymentModal(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-400 hover:text-gray-200 text-2xl"
               >
                 ×
               </button>
             </div>
 
             <div className="mb-4">
-              <p className="text-gray-700 mb-2">
+              <p className="text-gray-200 mb-2">
                 Current Balance:{" "}
-                <span className="text-red-600 font-bold text-xl">
+                <span className="text-red-400 font-bold text-xl">
                   ${selectedUser.balance.toFixed(2)}
                 </span>
               </p>
@@ -388,7 +454,7 @@ export default function PaymentsPage() {
 
             <form onSubmit={handleAddPayment}>
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium mb-2 text-gray-300">
                   Payment Amount
                 </label>
                 <input
@@ -397,7 +463,7 @@ export default function PaymentsPage() {
                   min="0"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
+                  className="w-full bg-gray-700 border border-gray-600 text-gray-100 rounded px-3 py-2"
                   placeholder="0.00"
                   required
                 />
@@ -407,16 +473,96 @@ export default function PaymentsPage() {
                 <button
                   type="button"
                   onClick={() => setShowPaymentModal(false)}
-                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-100 px-4 py-2 rounded border border-gray-600"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isProcessing}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded disabled:opacity-50"
+                  className="flex-1 bg-green-900 hover:bg-green-800 text-gray-100 px-4 py-2 rounded border border-green-700 disabled:opacity-50"
                 >
                   {isProcessing ? "Processing..." : "Record Payment"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Adjust Balance Modal */}
+      {showAdjustModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-800 rounded-lg max-w-md w-full p-6 border border-gray-700">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-100">
+                Adjust Balance - {selectedUser.name}
+              </h2>
+              <button
+                onClick={() => setShowAdjustModal(false)}
+                className="text-gray-400 hover:text-gray-200 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-gray-200 mb-2">
+                Current Balance:{" "}
+                <span className="text-red-400 font-bold text-xl">
+                  ${selectedUser.balance.toFixed(2)}
+                </span>
+              </p>
+            </div>
+
+            <form onSubmit={handleAdjustBalance}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2 text-gray-300">
+                  New Balance Amount
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={adjustAmount}
+                  onChange={(e) => setAdjustAmount(e.target.value)}
+                  className="w-full bg-gray-700 border border-gray-600 text-gray-100 rounded px-3 py-2"
+                  placeholder="0.00"
+                  required
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Enter the new total balance (e.g., 0.00 to clear balance)
+                </p>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2 text-gray-300">
+                  Reason (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={adjustReason}
+                  onChange={(e) => setAdjustReason(e.target.value)}
+                  className="w-full bg-gray-700 border border-gray-600 text-gray-100 rounded px-3 py-2"
+                  placeholder="e.g., Balance forgiven, error correction"
+                  maxLength={200}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAdjustModal(false)}
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-100 px-4 py-2 rounded border border-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessing}
+                  className="flex-1 bg-yellow-900 hover:bg-yellow-800 text-gray-100 px-4 py-2 rounded border border-yellow-700 disabled:opacity-50"
+                >
+                  {isProcessing ? "Processing..." : "Adjust Balance"}
                 </button>
               </div>
             </form>
