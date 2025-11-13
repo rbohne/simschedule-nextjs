@@ -137,43 +137,43 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="text-xl text-gray-100">Loading...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen py-12 bg-gray-50">
+    <div className="min-h-screen py-12 bg-gray-900">
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <h1 className="text-3xl font-bold mb-2">Profile Settings</h1>
-            <p className="text-gray-600 mb-8">
+          <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-lg p-8">
+            <h1 className="text-3xl font-bold mb-2 text-gray-100">Profile Settings</h1>
+            <p className="text-gray-400 mb-8">
               Manage your account settings and change your password
             </p>
 
             {/* User Info Section */}
-            <div className="mb-8 pb-8 border-b">
-              <h2 className="text-xl font-semibold mb-4">Account Information</h2>
-              <div className="bg-gray-50 p-4 rounded-md">
-                <p className="text-sm text-gray-600">Email</p>
-                <p className="text-lg font-medium">{user?.email}</p>
+            <div className="mb-8 pb-8 border-b border-gray-700">
+              <h2 className="text-xl font-semibold mb-4 text-gray-100">Account Information</h2>
+              <div className="bg-gray-700 p-4 rounded-md">
+                <p className="text-sm text-gray-400">Email</p>
+                <p className="text-lg font-medium text-gray-100">{user?.email}</p>
               </div>
             </div>
 
             {/* Change Password Section */}
             <div>
-              <h2 className="text-xl font-semibold mb-4">Change Password</h2>
+              <h2 className="text-xl font-semibold mb-4 text-gray-100">Change Password</h2>
 
               {error && (
-                <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                <div className="mb-4 bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded">
                   {error}
                 </div>
               )}
 
               {success && (
-                <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+                <div className="mb-4 bg-green-900/50 border border-green-700 text-green-200 px-4 py-3 rounded">
                   {success}
                 </div>
               )}
@@ -182,7 +182,7 @@ export default function ProfilePage() {
                 <div>
                   <label
                     htmlFor="currentPassword"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="block text-sm font-medium text-gray-300 mb-1"
                   >
                     Current Password
                   </label>
@@ -192,7 +192,7 @@ export default function ProfilePage() {
                     required
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500"
                     placeholder="Enter current password"
                   />
                 </div>
@@ -200,7 +200,7 @@ export default function ProfilePage() {
                 <div>
                   <label
                     htmlFor="newPassword"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="block text-sm font-medium text-gray-300 mb-1"
                   >
                     New Password
                   </label>
@@ -210,7 +210,7 @@ export default function ProfilePage() {
                     required
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500"
                     placeholder="Enter new password (min. 6 characters)"
                   />
                 </div>
@@ -218,7 +218,7 @@ export default function ProfilePage() {
                 <div>
                   <label
                     htmlFor="confirmPassword"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="block text-sm font-medium text-gray-300 mb-1"
                   >
                     Confirm New Password
                   </label>
@@ -228,7 +228,7 @@ export default function ProfilePage() {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500"
                     placeholder="Confirm new password"
                   />
                 </div>
@@ -236,7 +236,7 @@ export default function ProfilePage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full bg-gray-700 text-white py-2 px-4 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {submitting ? 'Changing Password...' : 'Change Password'}
                 </button>

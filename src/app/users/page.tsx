@@ -259,6 +259,7 @@ export default function UsersPage() {
           phone: editUser.phone,
           role: editUser.role,
           profile_picture_url: profilePictureUrl,
+          active_until: editUser.active_until,
         }),
       });
 
@@ -375,6 +376,9 @@ export default function UsersPage() {
                     Role
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Active Until
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -383,69 +387,90 @@ export default function UsersPage() {
                 {users.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={7}
                       className="px-6 py-4 text-center text-gray-500"
                     >
                       No users found
                     </td>
                   </tr>
                 ) : (
-                  users.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-700 text-gray-200">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {user.profile_picture_url ? (
-                          <img
-                            src={user.profile_picture_url}
-                            alt={user.name || 'User'}
-                            className="w-12 h-12 rounded object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => {
-                              setSelectedImageUrl(user.profile_picture_url);
-                              setShowImageModal(true);
-                            }}
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded bg-gray-200 flex items-center justify-center text-gray-500 font-semibold">
-                            {(user.name || 'U').charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {user.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {user.email}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {user.phone}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-1 text-xs rounded ${
-                            user.role === "admin"
-                              ? "bg-red-900 text-red-200 border border-red-700"
-                              : "bg-blue-900 text-blue-200 border border-blue-700"
-                          }`}
-                        >
-                          {user.role}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <button
-                          onClick={() => openEditModal(user)}
-                          className="text-blue-400 hover:text-blue-300 mr-4"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(user.id)}
-                          disabled={user.id === currentUser?.id}
-                          className="text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                  users.map((user) => {
+                    const activeUntil = user.active_until ? new Date(user.active_until) : null;
+                    const isActive = activeUntil && activeUntil > new Date();
+                    const isExpired = activeUntil && activeUntil <= new Date();
+
+                    return (
+                      <tr key={user.id} className="hover:bg-gray-700 text-gray-200">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {user.profile_picture_url ? (
+                            <img
+                              src={user.profile_picture_url}
+                              alt={user.name || 'User'}
+                              className="w-12 h-12 rounded object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => {
+                                setSelectedImageUrl(user.profile_picture_url);
+                                setShowImageModal(true);
+                              }}
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded bg-gray-200 flex items-center justify-center text-gray-500 font-semibold">
+                              {(user.name || 'U').charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {user.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {user.email}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {user.phone}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2 py-1 text-xs rounded ${
+                              user.role === "admin"
+                                ? "bg-red-900 text-red-200 border border-red-700"
+                                : "bg-blue-900 text-blue-200 border border-blue-700"
+                            }`}
+                          >
+                            {user.role}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {activeUntil ? (
+                            <span
+                              className={`px-2 py-1 text-xs rounded ${
+                                isActive
+                                  ? "bg-green-900 text-green-200 border border-green-700"
+                                  : "bg-red-900 text-red-200 border border-red-700"
+                              }`}
+                            >
+                              {activeUntil.toLocaleDateString()}
+                            </span>
+                          ) : (
+                            <span className="text-gray-500 text-xs">Not set</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => openEditModal(user)}
+                            className="text-blue-400 hover:text-blue-300 mr-4"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user.id)}
+                            disabled={user.id === currentUser?.id}
+                            className="text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -652,7 +677,7 @@ export default function UsersPage() {
                 </p>
               </div>
 
-              <div className="mb-6">
+              <div className="mb-4">
                 <label className="block text-sm font-medium mb-2 text-gray-300">Role</label>
                 <select
                   value={editUser.role}
@@ -667,6 +692,28 @@ export default function UsersPage() {
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
                 </select>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2 text-gray-300">
+                  Active Until (Membership Expiry)
+                </label>
+                <input
+                  type="date"
+                  value={
+                    editUser.active_until
+                      ? new Date(editUser.active_until).toISOString().split('T')[0]
+                      : ''
+                  }
+                  onChange={(e) => {
+                    const dateValue = e.target.value ? new Date(e.target.value).toISOString() : null;
+                    setEditUser({ ...editUser, active_until: dateValue });
+                  }}
+                  className="w-full bg-gray-700 border border-gray-600 text-gray-100 rounded px-3 py-2"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Set the date until which the user's membership is active (typically 1 year from payment)
+                </p>
               </div>
 
               <div className="flex gap-2">

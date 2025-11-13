@@ -444,14 +444,61 @@ export default function Home() {
                 </button>
               </div>
 
+              {/* Active Membership Status */}
+              {userProfile?.active_until && (
+                <div className="mt-8">
+                  {(() => {
+                    const activeUntil = new Date(userProfile.active_until);
+                    const isActive = activeUntil > new Date();
+                    const daysRemaining = Math.ceil((activeUntil.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+
+                    // Format date as "November 30th, 2026"
+                    const formatDateWithOrdinal = (date: Date) => {
+                      const day = date.getDate();
+                      const month = date.toLocaleDateString('en-US', { month: 'long' });
+                      const year = date.getFullYear();
+
+                      const getOrdinal = (n: number) => {
+                        const s = ["th", "st", "nd", "rd"];
+                        const v = n % 100;
+                        return n + (s[(v - 20) % 10] || s[v] || s[0]);
+                      };
+
+                      return `${month} ${getOrdinal(day)}, ${year}`;
+                    };
+
+                    return isActive ? (
+                      <div className={`border-l-4 px-4 py-2 rounded-r-lg shadow-md text-center ${
+                        daysRemaining <= 30
+                          ? "bg-yellow-900/30 border-yellow-600"
+                          : "bg-green-900/30 border-green-600"
+                      }`}>
+                        <p className={`text-sm ${
+                          daysRemaining <= 30 ? "text-yellow-100" : "text-green-100"
+                        }`}>
+                          Active until <span className="font-bold">{formatDateWithOrdinal(activeUntil)}</span>
+                          {daysRemaining <= 30 && <span className="ml-2 text-yellow-300">({daysRemaining} day{daysRemaining !== 1 ? 's' : ''} remaining)</span>}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="bg-red-900/50 border-l-4 border-red-600 px-4 py-2 rounded-r-lg shadow-md text-center">
+                        <p className="text-sm text-red-100">
+                          Membership expired on <span className="font-bold">{formatDateWithOrdinal(activeUntil)}</span> - Please renew to continue booking
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
               {/* Guest Fees Balance */}
               {userBalance > 0 && (
                 <div className="mt-8">
-                  <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-r-lg shadow-md text-center">
-                    <h3 className="text-xl font-semibold text-red-800 mb-2">
+                  <div className="bg-red-900/50 border-l-4 border-red-600 p-6 rounded-r-lg shadow-md text-center">
+                    <h3 className="text-xl font-semibold text-red-200 mb-2">
                       Guest Fees Due
                     </h3>
-                    <p className="text-3xl font-bold text-red-600">
+                    <p className="text-3xl font-bold text-red-100">
                       ${userBalance.toFixed(2)}
                     </p>
                   </div>
