@@ -95,7 +95,7 @@ export default function Navbar() {
             <img
               src="/images/TheCave_LOGO.png"
               alt="The Cave Golf"
-              className="h-12 w-auto"
+              className="h-18 w-auto"
             />
             <span className="text-xl font-bold">Cave Schedule</span>
           </Link>

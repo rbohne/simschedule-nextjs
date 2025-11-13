@@ -44,7 +44,7 @@ export default function LoginPage() {
             <img
               src="/images/TheCave_LOGO.png"
               alt="The Cave Golf"
-              className="h-24 w-auto"
+              className="h-48 w-auto"
             />
           </div>
           <h2 className="text-3xl font-bold text-center text-gray-100">Sign In</h2>
