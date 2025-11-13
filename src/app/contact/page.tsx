@@ -207,7 +207,7 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-900 py-8">
       <div className="container mx-auto px-4">
         {/* Logo */}
         <div className="flex justify-center mb-6">
@@ -219,15 +219,15 @@ export default function ContactPage() {
         </div>
 
         <div className="max-w-3xl mx-auto">
-          <div className="bg-white rounded-lg shadow">
-            <div className="bg-blue-600 text-white px-6 py-4 rounded-t-lg">
+          <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700">
+            <div className="bg-gray-900 text-gray-100 px-6 py-4 rounded-t-lg border-b border-gray-700">
               <h1 className="text-2xl font-bold mb-0">
                 Contact Us / Report an Issue
               </h1>
             </div>
 
             <div className="p-6">
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-400 mb-6">
                 Have a question, found a bug, or need to report an issue? Send
                 us a message and we'll get back to you as soon as possible.
               </p>
@@ -246,7 +246,7 @@ export default function ContactPage() {
               )}
 
               {success && (
-                <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded flex justify-between items-center">
+                <div className="mb-4 bg-green-900/50 border border-green-700 text-green-200 px-4 py-3 rounded flex justify-between items-center">
                   <span>{success}</span>
                   <button
                     onClick={() => setSuccess(null)}
@@ -258,9 +258,9 @@ export default function ContactPage() {
               )}
 
               {/* User Info Display */}
-              <div className="mb-6 p-4 bg-gray-50 rounded">
-                <p className="text-sm text-gray-500 mb-1">Submitting as:</p>
-                <p className="text-gray-800">
+              <div className="mb-6 p-4 bg-gray-700 rounded border border-gray-600">
+                <p className="text-sm text-gray-400 mb-1">Submitting as:</p>
+                <p className="text-gray-200">
                   {currentUser?.name} • {currentUser?.email} •{" "}
                   {currentUser?.phone}
                 </p>

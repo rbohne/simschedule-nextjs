@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SimSchedule - Booking System",
-  description: "Golf simulator booking system",
+  title: "Cave Schedule - Booking System",
+  description: "The Cave Golf simulator booking system",
 };
 
 export default function RootLayout({

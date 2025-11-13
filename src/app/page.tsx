@@ -365,18 +365,18 @@ export default function Home() {
         <div className="min-h-screen py-12 relative z-10">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
-              <h1 className="text-4xl font-bold mb-4 text-center">
+              <h1 className="text-4xl font-bold mb-4 text-center text-gray-100">
                 Welcome to The Cave Golf Schedule
               </h1>
-              <p className="text-xl text-gray-600 mb-8 text-center">
+              <p className="text-xl text-gray-400 mb-8 text-center">
                 Select a simulator to view and book your time slots
               </p>
 
               <div className="grid md:grid-cols-2 gap-8 mt-12">
                 <button
                   onClick={() => selectSimulator("east")}
-                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-12 text-center
-    transition-transform hover:scale-105 shadow-lg"
+                  className="bg-blue-900 hover:bg-blue-800 text-gray-100 rounded-lg p-12 text-center
+    transition-transform hover:scale-105 shadow-lg border border-blue-700"
                 >
                   <div className="text-6xl mb-4">📍</div>
                   <h3 className="text-3xl font-bold">EAST SIM</h3>
@@ -384,8 +384,8 @@ export default function Home() {
 
                 <button
                   onClick={() => selectSimulator("west")}
-                  className="bg-green-600 hover:bg-green-700 text-white rounded-lg p-12 text-center
-    transition-transform hover:scale-105 shadow-lg"
+                  className="bg-green-900 hover:bg-green-800 text-gray-100 rounded-lg p-12 text-center
+    transition-transform hover:scale-105 shadow-lg border border-green-700"
                 >
                   <div className="text-6xl mb-4">📍</div>
                   <h3 className="text-3xl font-bold">WEST SIM</h3>
@@ -413,10 +413,10 @@ export default function Home() {
                     {tournamentMessages.filter(msg => msg.is_active).map((msg) => (
                       <div
                         key={msg.id}
-                        className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg shadow-md"
+                        className="bg-yellow-900/30 border-l-4 border-yellow-600 p-4 rounded-r-lg shadow-md"
                       >
                         <div
-                          className="text-gray-800 text-lg tournament-message"
+                          className="text-gray-200 text-lg tournament-message"
                           dangerouslySetInnerHTML={{ __html: msg.message }}
                         />
                       </div>
@@ -455,11 +455,11 @@ export default function Home() {
             <div className="mb-6 flex items-center justify-between">
               <button
                 onClick={clearSimulatorSelection}
-                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+                className="bg-gray-700 hover:bg-gray-600 text-gray-100 px-4 py-2 rounded"
               >
                 ← Back to Simulator Selection
               </button>
-              <h2 className="text-3xl font-bold">
+              <h2 className="text-3xl font-bold text-gray-100">
                 {selectedSimulator.toUpperCase()} SIM
               </h2>
               <div className="w-48"></div>
@@ -476,7 +476,7 @@ export default function Home() {
                       newDate.setDate(newDate.getDate() - 7);
                       selectDate(newDate);
                     }}
-                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-3 py-2 rounded"
+                    className="bg-gray-700 hover:bg-gray-600 text-gray-100 px-3 py-2 rounded"
                   >
                     ← Previous Week
                   </button>
@@ -486,7 +486,7 @@ export default function Home() {
                       newDate.setDate(newDate.getDate() + 7);
                       selectDate(newDate);
                     }}
-                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-3 py-2 rounded"
+                    className="bg-gray-700 hover:bg-gray-600 text-gray-100 px-3 py-2 rounded"
                   >
                     Next Week →
                   </button>
@@ -497,11 +497,11 @@ export default function Home() {
                       const newDate = new Date(e.target.value + 'T12:00:00');
                       selectDate(newDate);
                     }}
-                    className="border border-gray-300 rounded px-3 py-2 ml-2"
+                    className="bg-gray-700 border border-gray-600 text-gray-100 rounded px-3 py-2 ml-2"
                   />
                   <button
                     onClick={() => selectDate(getMSTNow())}
-                    className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded"
+                    className="bg-green-800 hover:bg-green-700 text-gray-100 px-3 py-2 rounded"
                   >
                     Today
                   </button>
@@ -539,8 +539,8 @@ export default function Home() {
                       onClick={() => selectDate(date)}
                       className={`shrink-0 min-w-[100px] p-4 rounded-lg border-2 transition-all ${
                         isSelected
-                          ? "bg-blue-600 text-white border-blue-600 font-bold"
-                          : "bg-white border-gray-300 hover:border-blue-600"
+                          ? "bg-blue-900 text-gray-100 border-blue-700 font-bold"
+                          : "bg-gray-800 text-gray-300 border-gray-600 hover:border-blue-700"
                       }`}
                     >
                       <div className="text-sm font-semibold uppercase">
@@ -556,8 +556,8 @@ export default function Home() {
                         <div
                           className={`text-xs mt-2 px-2 py-1 rounded ${
                             isSelected
-                              ? "bg-white text-blue-600"
-                              : "bg-green-500 text-white"
+                              ? "bg-gray-700 text-blue-300"
+                              : "bg-green-800 text-gray-100"
                           }`}
                         >
                           Today
@@ -572,21 +572,21 @@ export default function Home() {
             {/* Legend and Actions */}
             <div className="mb-4 flex items-center gap-6 flex-wrap">
               <div className="flex items-center gap-2">
-                <span className="px-3 py-1 bg-gray-200 text-gray-800 rounded text-sm">
+                <span className="px-3 py-1 bg-gray-700 text-gray-200 rounded text-sm border border-gray-600">
                   Available
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="px-3 py-1 bg-blue-600 text-white rounded text-sm">
+                <span className="px-3 py-1 bg-blue-900 text-gray-100 rounded text-sm border border-blue-700">
                   Booked
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="px-3 py-1 bg-green-600 text-white rounded text-sm">
+                <span className="px-3 py-1 bg-green-900 text-gray-100 rounded text-sm border border-green-700">
                   Your Booking
                 </span>
               </div>
-              <div className="ml-auto font-bold">
+              <div className="ml-auto font-bold text-gray-200">
                 Your Total Bookings: {userTotalBookedHours} / 2 hours
               </div>
             </div>
@@ -596,13 +596,13 @@ export default function Home() {
               {/* Alerts */}
               {error && (
                 <div
-                  className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex
+                  className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded flex
   justify-between items-center"
                 >
                   <span>{error}</span>
                   <button
                     onClick={() => setError(null)}
-                    className="text-red-700 font-bold"
+                    className="text-red-200 font-bold"
                   >
                     ×
                   </button>
@@ -611,13 +611,13 @@ export default function Home() {
 
               {success && (
                 <div
-                  className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded flex
+                  className="bg-green-900/50 border border-green-700 text-green-200 px-4 py-3 rounded flex
   justify-between items-center"
                 >
                   <span>{success}</span>
                   <button
                     onClick={() => setSuccess(null)}
-                    className="text-green-700 font-bold"
+                    className="text-green-200 font-bold"
                   >
                     ×
                   </button>
@@ -627,18 +627,18 @@ export default function Home() {
               {/* Selected slots action bar */}
               {selectedSlots.length > 0 && (
                 <div className="flex items-center gap-4">
-                  <span className="font-bold">
+                  <span className="font-bold text-gray-200">
                     Selected: {selectedSlots.length} hour(s)
                   </span>
                   <button
                     onClick={bookSelectedSlots}
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+                    className="bg-green-800 hover:bg-green-700 text-gray-100 px-4 py-2 rounded"
                   >
                     Book Selected Times
                   </button>
                   <button
                     onClick={() => setSelectedSlots([])}
-                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
+                    className="bg-gray-700 hover:bg-gray-600 text-gray-100 px-4 py-2 rounded"
                   >
                     Clear
                   </button>
@@ -672,14 +672,14 @@ export default function Home() {
                     onClick={() => !isBooked && !isPastSlot && toggleSlotSelection(timeSlot)}
                     className={`p-4 rounded-lg border-2 transition-all flex justify-between items-center ${
                       isPastSlot
-                        ? "bg-gray-100 border-gray-300 opacity-60"
+                        ? "bg-gray-800 border-gray-700 opacity-50 text-gray-500"
                         : isUserBooking
-                        ? "bg-green-50 border-green-600 cursor-pointer"
+                        ? "bg-green-900/40 border-green-700 cursor-pointer text-gray-200"
                         : isBooked
-                        ? "bg-blue-50 border-blue-600 cursor-default"
+                        ? "bg-blue-900/40 border-blue-700 cursor-default text-gray-200"
                         : isSelected
-                        ? "bg-yellow-50 border-yellow-500 border-4 cursor-pointer"
-                        : "bg-white border-gray-300 hover:border-green-500 cursor-pointer"
+                        ? "bg-yellow-900/40 border-yellow-600 border-4 cursor-pointer text-gray-200"
+                        : "bg-gray-800 border-gray-600 hover:border-green-700 cursor-pointer text-gray-200"
                     }`}
                   >
                     <div className="font-bold text-lg">
@@ -701,7 +701,7 @@ export default function Home() {
                         <>
                           {isUserBooking ? (
                             <>
-                              <span className="px-3 py-1 bg-green-600 text-white rounded text-sm">
+                              <span className="px-3 py-1 bg-green-800 text-gray-100 rounded text-sm border border-green-700">
                                 Your Booking
                               </span>
                               <button
@@ -709,7 +709,7 @@ export default function Home() {
                                   e.stopPropagation();
                                   cancelBooking(booking.id);
                                 }}
-                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                                className="bg-red-800 hover:bg-red-700 text-gray-100 px-3 py-1 rounded text-sm"
                               >
                                 Cancel
                               </button>
@@ -720,7 +720,7 @@ export default function Home() {
                                 <img
                                   src={(booking.profile as Profile).profile_picture_url || ''}
                                   alt={(booking.profile as Profile)?.name || 'User'}
-                                  className="w-10 h-10 rounded object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                  className="w-10 h-10 rounded object-cover cursor-pointer hover:opacity-80 transition-opacity border-2 border-gray-600"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setSelectedImageUrl((booking.profile as Profile)?.profile_picture_url || null);
@@ -728,7 +728,7 @@ export default function Home() {
                                   }}
                                 />
                               )}
-                              <span className="px-3 py-1 bg-blue-600 text-white rounded text-sm">
+                              <span className="px-3 py-1 bg-blue-900 text-gray-100 rounded text-sm border border-blue-700">
                                 Booked by{" "}
                                 {(booking.profile as Profile)?.name || "User"}
                               </span>
@@ -738,7 +738,7 @@ export default function Home() {
                                   addGuestFee(booking.id, booking.user_id);
                                 }}
                                 disabled={addingGuestFee === booking.id}
-                                className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
+                                className="bg-purple-800 hover:bg-purple-700 text-gray-100 px-3 py-1 rounded text-sm disabled:opacity-50"
                               >
                                 {addingGuestFee === booking.id ? "Adding..." : "Guest +$20"}
                               </button>
@@ -747,23 +747,23 @@ export default function Home() {
                                   e.stopPropagation();
                                   cancelBooking(booking.id);
                                 }}
-                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                                className="bg-red-800 hover:bg-red-700 text-gray-100 px-3 py-1 rounded text-sm"
                               >
                                 Cancel
                               </button>
                             </>
                           ) : (
-                            <span className="px-3 py-1 bg-blue-600 text-white rounded text-sm">
+                            <span className="px-3 py-1 bg-blue-900 text-gray-100 rounded text-sm border border-blue-700">
                               Booked
                             </span>
                           )}
                         </>
                       ) : isSelected ? (
-                        <span className="px-3 py-1 bg-yellow-500 text-white rounded text-sm">
+                        <span className="px-3 py-1 bg-yellow-800 text-gray-100 rounded text-sm border border-yellow-700">
                           Selected
                         </span>
                       ) : (
-                        <span className="text-gray-500">Available</span>
+                        <span className="text-gray-400">Available</span>
                       )}
                     </div>
                   </div>
@@ -783,7 +783,7 @@ export default function Home() {
           <div className="relative max-w-4xl max-h-[90vh]">
             <button
               onClick={() => setShowImageModal(false)}
-              className="absolute top-2 right-2 bg-white rounded-full w-8 h-8 flex items-center justify-center text-gray-700 hover:bg-gray-200 z-10"
+              className="absolute top-2 right-2 bg-gray-800 rounded-full w-8 h-8 flex items-center justify-center text-gray-200 hover:bg-gray-700 z-10 border border-gray-600"
             >
               ×
             </button>
