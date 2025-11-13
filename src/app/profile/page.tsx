@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -82,11 +81,6 @@ export default function ProfilePage() {
       return
     }
 
-    if (currentPassword === newPassword) {
-      setError('New password must be different from current password')
-      return
-    }
-
     setSubmitting(true)
 
     try {
@@ -113,7 +107,6 @@ export default function ProfilePage() {
 
         // Success!
         setSuccess('Password changed successfully! Please log in with your new password...')
-        setCurrentPassword('')
         setNewPassword('')
         setConfirmPassword('')
         setSubmitting(false)
@@ -179,24 +172,6 @@ export default function ProfilePage() {
               )}
 
               <form onSubmit={handlePasswordChange} className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="currentPassword"
-                    className="block text-sm font-medium text-gray-300 mb-1"
-                  >
-                    Current Password
-                  </label>
-                  <input
-                    id="currentPassword"
-                    type="password"
-                    required
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500"
-                    placeholder="Enter current password"
-                  />
-                </div>
-
                 <div>
                   <label
                     htmlFor="newPassword"
