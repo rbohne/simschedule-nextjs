@@ -42,14 +42,14 @@ export default function LoginPage() {
         <div>
           <div className="flex justify-center mb-6">
             <img
-              src="/images/TheSimGuys_Logo_FINAL.png"
-              alt="The Sim Guys"
+              src="/images/TheCave_LOGO.png"
+              alt="The Cave Golf"
               className="h-24 w-auto"
             />
           </div>
           <h2 className="text-3xl font-bold text-center">Sign In</h2>
           <p className="mt-2 text-center text-gray-600">
-            SimSchedule - Booking System
+            Cave Schedule - Booking System
           </p>
         </div>
 

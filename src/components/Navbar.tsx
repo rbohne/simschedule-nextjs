@@ -93,11 +93,11 @@ export default function Navbar() {
           {/* Logo / Brand */}
           <Link href="/" className="flex items-center gap-3">
             <img
-              src="/images/TheSimGuys_Logo_FINAL.png"
-              alt="The Sim Guys"
+              src="/images/TheCave_LOGO.png"
+              alt="The Cave Golf"
               className="h-12 w-auto"
             />
-            <span className="text-xl font-bold">SIM Schedule</span>
+            <span className="text-xl font-bold">Cave Schedule</span>
           </Link>
 
           {/* Navigation */}

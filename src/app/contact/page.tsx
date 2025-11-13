@@ -212,8 +212,8 @@ export default function ContactPage() {
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <img
-            src="/images/TheSimGuys_Logo_FINAL.png"
-            alt="The Sim Guys"
+            src="/images/TheCave_LOGO.png"
+            alt="The Cave Golf"
             className="max-w-[200px] h-auto"
           />
         </div>

@@ -1,14 +1,14 @@
-# SIM Schedule - Feature Documentation
+# Cave Schedule - Feature Documentation
 
 ## Overview
-SIM Schedule is a Next.js booking system for The Sim Guys golf simulator business. It allows users to book time slots on two golf simulators (East and West) and provides comprehensive admin tools for managing users, payments, and guest fees.
+Cave Schedule is a Next.js booking system for The Cave Golf simulator business. It allows users to book time slots on two golf simulators (East and West) and provides comprehensive admin tools for managing users, payments, and guest fees.
 
 ## Technology Stack
 - **Framework**: Next.js 16.0.1 with Turbopack
 - **Authentication**: Supabase Auth
 - **Database**: Supabase (PostgreSQL)
 - **Storage**: Supabase Storage (for profile pictures)
-- **Hosting**: Vercel (thesimguys.ca)
+- **Hosting**: Vercel (golfthecave.ca)
 - **Styling**: Tailwind CSS
 
 ## User Roles
@@ -330,7 +330,7 @@ Run migrations via Supabase Dashboard SQL Editor.
 
 ### Deployment
 - Auto-deploys from `main` branch via Vercel
-- Production URL: thesimguys.ca
+- Production URL: golfthecave.ca
 - GitHub Repository: rbohne/simschedule-nextjs
 
 ### Local Development
