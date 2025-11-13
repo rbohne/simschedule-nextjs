@@ -202,7 +202,9 @@ export default function PaymentsPage() {
           userId: selectedUser.id,
           type: "adjustment",
           amount: adjustmentAmount,
-          description: adjustReason || `Balance adjusted from $${currentBalance.toFixed(2)} to $${newBalance.toFixed(2)}`,
+          description: adjustReason
+            ? `${adjustReason}\n\nBalance adjusted from $${currentBalance.toFixed(2)} to $${newBalance.toFixed(2)}`
+            : `Balance adjusted from $${currentBalance.toFixed(2)} to $${newBalance.toFixed(2)}`,
         }),
       });
 
@@ -237,7 +239,23 @@ export default function PaymentsPage() {
     <div className="min-h-screen bg-gray-900 py-8">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6 text-gray-100">User Payments</h1>
+          <div className="mb-6 flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-100">User Payments</h1>
+            <div className="flex gap-2">
+              <button
+                onClick={() => router.push('/guest-payments')}
+                className="bg-blue-900 hover:bg-blue-800 text-gray-100 px-4 py-2 rounded border border-blue-700"
+              >
+                View Payment History
+              </button>
+              <button
+                onClick={() => router.push('/adjustment-history')}
+                className="bg-purple-900 hover:bg-purple-800 text-gray-100 px-4 py-2 rounded border border-purple-700"
+              >
+                View Adjustment History
+              </button>
+            </div>
+          </div>
 
           {/* Alerts */}
           {error && (
