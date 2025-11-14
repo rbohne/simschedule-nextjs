@@ -54,8 +54,8 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session if needed
-  await supabase.auth.getUser()
+  // Refresh session if needed - getSession() will refresh the access token if expired
+  const { data: { session } } = await supabase.auth.getSession()
 
   return response
 }

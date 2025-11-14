@@ -78,5 +78,10 @@ export function createClient(useSessionStorage?: boolean) {
         document.cookie = cookie;
       },
     },
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+    }
   });
 }
