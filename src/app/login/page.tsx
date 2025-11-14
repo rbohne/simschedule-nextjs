@@ -81,46 +81,12 @@ export default function LoginPage() {
       // If rememberMe is true, use localStorage (persists)
       const supabase = createClient(!rememberMe)
 
-      // Add timeout to login attempt to prevent hanging
-      const loginPromise = supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Login timeout - session may be corrupted')), 10000)
-      )
-
-      const { error } = await Promise.race([loginPromise, timeoutPromise]) as any
-
       if (error) {
-        // Check if it's a session-related error
-        const errorMessage = error.message?.toLowerCase() || ''
-        if (errorMessage.includes('session') || errorMessage.includes('token') || errorMessage.includes('timeout')) {
-          console.log('Session error detected during login, forcing cleanup')
-          setError('Session error detected. Refreshing page...')
-
-          // Force cleanup and reload
-          if (typeof window !== 'undefined') {
-            const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token']
-            storageKeys.forEach(key => {
-              try {
-                localStorage.removeItem(key)
-                sessionStorage.removeItem(key)
-              } catch (e) {
-                console.log('Storage clear error:', e)
-              }
-            })
-
-            // Delay reload slightly to show error message
-            setTimeout(() => {
-              sessionStorage.setItem('auth-cleanup-reload', 'true')
-              window.location.reload()
-            }, 1000)
-          }
-          return
-        }
-
         setError(error.message)
         setLoading(false)
       } else {
