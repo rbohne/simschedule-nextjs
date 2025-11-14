@@ -291,7 +291,9 @@ export default function Home() {
     const slots: Date[] = [];
     const date = new Date(selectedDate);
 
-    for (let hour = 6; hour < 24; hour++) {
+    // Generate slots from 6 AM to 2 AM (next day)
+    // hour 24 = midnight (12 AM), hour 25 = 1 AM, hour 26 = 2 AM
+    for (let hour = 6; hour < 26; hour++) {
       const slot = new Date(date);
       slot.setHours(hour, 0, 0, 0);
       slots.push(slot);
