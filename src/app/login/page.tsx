@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -11,6 +11,36 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+
+  // Clear any broken sessions on mount (especially important for mobile)
+  useEffect(() => {
+    const clearBrokenSession = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        // If there's an error getting the session, clear storage
+        if (error) {
+          console.log('Clearing broken session:', error.message);
+          if (typeof window !== 'undefined') {
+            const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token'];
+            storageKeys.forEach(key => {
+              try {
+                localStorage.removeItem(key);
+                sessionStorage.removeItem(key);
+              } catch (e) {
+                console.log('Storage clear error:', e);
+              }
+            });
+          }
+        }
+      } catch (e) {
+        console.log('Session check error:', e);
+      }
+    };
+
+    clearBrokenSession();
+  }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()

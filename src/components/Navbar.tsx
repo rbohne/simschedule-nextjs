@@ -89,6 +89,21 @@ export default function Navbar() {
       console.log('SignOut error (continuing anyway):', error)
     }
 
+    // Clear all storage to ensure clean logout (especially important for mobile)
+    if (typeof window !== 'undefined') {
+      // Clear all Supabase-related items from both localStorage and sessionStorage
+      const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token'];
+
+      storageKeys.forEach(key => {
+        try {
+          localStorage.removeItem(key);
+          sessionStorage.removeItem(key);
+        } catch (e) {
+          console.log('Storage clear error:', e);
+        }
+      });
+    }
+
     // Force a hard reload to /login to reinitialize the Supabase client
     // This fixes issues when the session has expired and the client is in a broken state
     window.location.href = '/login'
