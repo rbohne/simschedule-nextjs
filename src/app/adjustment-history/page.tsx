@@ -71,9 +71,12 @@ export default function AdjustmentHistoryPage() {
       clearTimeout(authTimeout);
 
       if (error || !user) {
-        console.error('Auth error:', error);
-        // Clear storage on auth error before redirecting
-        if (typeof window !== 'undefined') {
+        // Only log if it's not the expected "Auth session missing" error
+        if (error && error.message !== 'Auth session missing!') {
+          console.error('Auth error:', error);
+        }
+        // Clear storage on auth error before redirecting (except for normal "no session")
+        if (error && error.message !== 'Auth session missing!' && typeof window !== 'undefined') {
           const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token'];
           storageKeys.forEach(key => {
             try {
@@ -103,12 +106,15 @@ export default function AdjustmentHistoryPage() {
       setIsAdmin(true);
       await loadAdjustments();
       setLoading(false);
-    } catch (err) {
+    } catch (err: any) {
       if (!mounted) return;
       clearTimeout(authTimeout);
-      console.error('Auth check failed:', err);
-      // Clear storage on error before redirecting
-      if (typeof window !== 'undefined') {
+      // Only log if it's not the expected "Auth session missing" error
+      if (err?.message !== 'Auth session missing!') {
+        console.error('Auth check failed:', err);
+      }
+      // Clear storage on error before redirecting (except for normal "no session")
+      if (err?.message !== 'Auth session missing!' && typeof window !== 'undefined') {
         const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token'];
         storageKeys.forEach(key => {
           try {

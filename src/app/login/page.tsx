@@ -20,7 +20,6 @@ export default function LoginPage() {
         const justReloaded = sessionStorage.getItem('auth-cleanup-reload');
         if (justReloaded) {
           sessionStorage.removeItem('auth-cleanup-reload');
-          console.log('Auth cleanup completed');
           return;
         }
 
@@ -37,14 +36,19 @@ export default function LoginPage() {
           timeoutPromise
         ]) as any;
 
-        // If there's an error or timeout, force cleanup and reload
-        if (error) {
+        // Only cleanup if there's an actual error (not just "no session")
+        // AuthSessionMissingError is normal for logged-out users
+        if (error && error.message !== 'Auth session missing!') {
           console.log('Broken session detected, forcing cleanup:', error.message);
           await forceAuthCleanup();
         }
-      } catch (e) {
-        console.log('Session check error or timeout, forcing cleanup:', e);
-        await forceAuthCleanup();
+      } catch (e: any) {
+        // Only cleanup on timeout, not on "session missing" errors
+        if (e?.message === 'Session check timeout') {
+          console.log('Session check timeout, forcing cleanup');
+          await forceAuthCleanup();
+        }
+        // Silently ignore "Auth session missing" - it's expected on login page
       }
     };
 

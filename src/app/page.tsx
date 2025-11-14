@@ -120,9 +120,12 @@ export default function Home() {
         clearTimeout(authTimeout);
 
         if (error) {
-          console.error('Auth error:', error);
-          // Clear storage on auth error before redirecting
-          if (typeof window !== 'undefined') {
+          // Only log if it's not the expected "Auth session missing" error
+          if (error.message !== 'Auth session missing!') {
+            console.error('Auth error:', error);
+          }
+          // Clear storage on auth error before redirecting (except for normal "no session")
+          if (error.message !== 'Auth session missing!' && typeof window !== 'undefined') {
             const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token'];
             storageKeys.forEach(key => {
               try {
@@ -150,9 +153,12 @@ export default function Home() {
       .catch((err) => {
         if (!mounted) return;
         clearTimeout(authTimeout);
-        console.error('Auth check failed:', err);
-        // Clear storage on error before redirecting
-        if (typeof window !== 'undefined') {
+        // Only log if it's not the expected "Auth session missing" error
+        if (err?.message !== 'Auth session missing!') {
+          console.error('Auth check failed:', err);
+        }
+        // Clear storage on error before redirecting (except for normal "no session")
+        if (err?.message !== 'Auth session missing!' && typeof window !== 'undefined') {
           const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token'];
           storageKeys.forEach(key => {
             try {
