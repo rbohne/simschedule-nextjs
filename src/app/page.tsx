@@ -498,8 +498,11 @@ export default function Home() {
                     <h3 className="text-xl font-semibold text-red-200 mb-2">
                       Guest Fees Due
                     </h3>
-                    <p className="text-3xl font-bold text-red-100">
+                    <p className="text-3xl font-bold text-red-100 mb-3">
                       ${userBalance.toFixed(2)}
+                    </p>
+                    <p className="text-sm text-red-200">
+                      Please send e-transfer to <span className="font-semibold">golfthecave@gmail.com</span>
                     </p>
                   </div>
                 </div>
