@@ -16,26 +16,54 @@ export default function LoginPage() {
   useEffect(() => {
     const clearBrokenSession = async () => {
       try {
-        const supabase = createClient();
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Check if we just did a cleanup reload to prevent infinite loop
+        const justReloaded = sessionStorage.getItem('auth-cleanup-reload');
+        if (justReloaded) {
+          sessionStorage.removeItem('auth-cleanup-reload');
+          console.log('Auth cleanup completed');
+          return;
+        }
 
-        // If there's an error getting the session, clear storage
+        const supabase = createClient();
+
+        // Set a timeout for the session check to prevent hanging
+        const sessionCheckPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Session check timeout')), 3000)
+        );
+
+        const { data: { session }, error } = await Promise.race([
+          sessionCheckPromise,
+          timeoutPromise
+        ]) as any;
+
+        // If there's an error or timeout, force cleanup and reload
         if (error) {
-          console.log('Clearing broken session:', error.message);
-          if (typeof window !== 'undefined') {
-            const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token'];
-            storageKeys.forEach(key => {
-              try {
-                localStorage.removeItem(key);
-                sessionStorage.removeItem(key);
-              } catch (e) {
-                console.log('Storage clear error:', e);
-              }
-            });
-          }
+          console.log('Broken session detected, forcing cleanup:', error.message);
+          await forceAuthCleanup();
         }
       } catch (e) {
-        console.log('Session check error:', e);
+        console.log('Session check error or timeout, forcing cleanup:', e);
+        await forceAuthCleanup();
+      }
+    };
+
+    const forceAuthCleanup = async () => {
+      if (typeof window !== 'undefined') {
+        // Clear all Supabase-related storage
+        const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token'];
+        storageKeys.forEach(key => {
+          try {
+            localStorage.removeItem(key);
+            sessionStorage.removeItem(key);
+          } catch (e) {
+            console.log('Storage clear error:', e);
+          }
+        });
+
+        // Set flag and force reload to reinitialize Supabase client
+        sessionStorage.setItem('auth-cleanup-reload', 'true');
+        window.location.reload();
       }
     };
 
@@ -47,22 +75,66 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
 
-    // Create client with appropriate storage based on "Remember Me" checkbox
-    // If rememberMe is false, use sessionStorage (clears when browser closes)
-    // If rememberMe is true, use localStorage (persists)
-    const supabase = createClient(!rememberMe)
+    try {
+      // Create client with appropriate storage based on "Remember Me" checkbox
+      // If rememberMe is false, use sessionStorage (clears when browser closes)
+      // If rememberMe is true, use localStorage (persists)
+      const supabase = createClient(!rememberMe)
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+      // Add timeout to login attempt to prevent hanging
+      const loginPromise = supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    if (error) {
-      setError(error.message)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Login timeout - session may be corrupted')), 10000)
+      )
+
+      const { error } = await Promise.race([loginPromise, timeoutPromise]) as any
+
+      if (error) {
+        // Check if it's a session-related error
+        const errorMessage = error.message?.toLowerCase() || ''
+        if (errorMessage.includes('session') || errorMessage.includes('token') || errorMessage.includes('timeout')) {
+          console.log('Session error detected during login, forcing cleanup')
+          setError('Session error detected. Refreshing page...')
+
+          // Force cleanup and reload
+          if (typeof window !== 'undefined') {
+            const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token']
+            storageKeys.forEach(key => {
+              try {
+                localStorage.removeItem(key)
+                sessionStorage.removeItem(key)
+              } catch (e) {
+                console.log('Storage clear error:', e)
+              }
+            })
+
+            // Delay reload slightly to show error message
+            setTimeout(() => {
+              sessionStorage.setItem('auth-cleanup-reload', 'true')
+              window.location.reload()
+            }, 1000)
+          }
+          return
+        }
+
+        setError(error.message)
+        setLoading(false)
+      } else {
+        // Login successful - clear any old flags and redirect
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('auth-cleanup-reload')
+        }
+        router.push('/')
+        router.refresh()
+      }
+    } catch (err: any) {
+      console.error('Login failed:', err)
+      setError(err.message || 'Login failed. Please try again.')
       setLoading(false)
-    } else {
-      router.push('/')
-      router.refresh()
     }
   }
 

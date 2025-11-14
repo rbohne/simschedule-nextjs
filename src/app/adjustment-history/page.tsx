@@ -35,7 +35,19 @@ export default function AdjustmentHistoryPage() {
     let mounted = true;
     const authTimeout = setTimeout(() => {
       if (mounted && loading) {
-        console.error('Auth check timed out, redirecting to login');
+        console.error('Auth check timed out, cleaning up and redirecting to login');
+        // Clear storage before redirect to ensure clean state
+        if (typeof window !== 'undefined') {
+          const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token'];
+          storageKeys.forEach(key => {
+            try {
+              localStorage.removeItem(key);
+              sessionStorage.removeItem(key);
+            } catch (e) {
+              console.log('Storage clear error:', e);
+            }
+          });
+        }
         router.push("/login");
       }
     }, 10000);
@@ -60,6 +72,18 @@ export default function AdjustmentHistoryPage() {
 
       if (error || !user) {
         console.error('Auth error:', error);
+        // Clear storage on auth error before redirecting
+        if (typeof window !== 'undefined') {
+          const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token'];
+          storageKeys.forEach(key => {
+            try {
+              localStorage.removeItem(key);
+              sessionStorage.removeItem(key);
+            } catch (e) {
+              console.log('Storage clear error:', e);
+            }
+          });
+        }
         router.push("/login");
         return;
       }
@@ -83,6 +107,18 @@ export default function AdjustmentHistoryPage() {
       if (!mounted) return;
       clearTimeout(authTimeout);
       console.error('Auth check failed:', err);
+      // Clear storage on error before redirecting
+      if (typeof window !== 'undefined') {
+        const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token'];
+        storageKeys.forEach(key => {
+          try {
+            localStorage.removeItem(key);
+            sessionStorage.removeItem(key);
+          } catch (e) {
+            console.log('Storage clear error:', e);
+          }
+        });
+      }
       router.push("/login");
     }
   }
