@@ -78,13 +78,5 @@ export function createClient(useSessionStorage?: boolean) {
         document.cookie = cookie;
       },
     },
-    auth: {
-      storage: getStorageToUse(),
-      storageKey: 'supabase.auth.token',
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-      flowType: 'pkce' as const,
-    }
   });
 }
