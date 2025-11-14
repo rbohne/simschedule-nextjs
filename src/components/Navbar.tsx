@@ -15,6 +15,7 @@ export default function Navbar() {
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -110,8 +111,29 @@ export default function Navbar() {
             />
           </Link>
 
-          {/* Navigation */}
-          <div className="flex items-center gap-4">
+          {/* Mobile Menu Button or Login Link */}
+          {user ? (
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="md:hidden text-gray-100 hover:text-gray-300 p-2"
+              aria-label="Toggle menu"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {showMobileMenu ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          ) : (
+            <Link href="/login" className="md:hidden hover:text-gray-300">
+              Login
+            </Link>
+          )}
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-4">
             {user ? (
               <>
                 <Link href="/" className="hover:text-gray-300">
@@ -221,6 +243,108 @@ export default function Navbar() {
             )}
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {showMobileMenu && user && (
+          <div className="md:hidden border-t border-gray-800 py-4">
+            <div className="flex flex-col space-y-3">
+              <Link
+                href="/"
+                className="hover:text-gray-300 px-2 py-2"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                Home
+              </Link>
+
+              {!isAdmin && (
+                <Link
+                  href="/contact"
+                  className="hover:text-gray-300 px-2 py-2"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  Contact Us
+                </Link>
+              )}
+
+              {isAdmin && (
+                <>
+                  <Link
+                    href="/settings"
+                    className="hover:text-gray-300 px-2 py-2"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    Settings
+                  </Link>
+                  <div className="pl-4 space-y-2 border-l-2 border-gray-700">
+                    <Link
+                      href="/users"
+                      className="block hover:text-gray-300 px-2 py-2 text-sm"
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      Users
+                    </Link>
+                    <Link
+                      href="/messages"
+                      className="block hover:text-gray-300 px-2 py-2 text-sm"
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      User Messages
+                    </Link>
+                    <Link
+                      href="/tournament-messages"
+                      className="block hover:text-gray-300 px-2 py-2 text-sm"
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      Home Page Messages
+                    </Link>
+                    <Link
+                      href="/payments"
+                      className="block hover:text-gray-300 px-2 py-2 text-sm"
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      User Payments
+                    </Link>
+                    <Link
+                      href="/membership-report"
+                      className="block hover:text-gray-300 px-2 py-2 text-sm"
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      Membership Report
+                    </Link>
+                  </div>
+                </>
+              )}
+
+              <a
+                href="/Terms-and-Conditions.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-gray-300 px-2 py-2"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                📄 Terms & Conditions
+              </a>
+
+              <Link
+                href="/profile"
+                className="hover:text-gray-300 px-2 py-2"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                Profile ({userName})
+              </Link>
+
+              <button
+                onClick={() => {
+                  setShowMobileMenu(false)
+                  handleLogout()
+                }}
+                className="text-left hover:text-gray-300 px-2 py-2"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   )
