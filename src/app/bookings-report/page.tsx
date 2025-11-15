@@ -221,9 +221,7 @@ export default function BookingsReportPage() {
                   bookings.map((booking) => (
                     <tr key={booking.id} className="hover:bg-gray-700/50">
                       <td className="px-4 py-3">
-                        {booking.profile?.first_name && booking.profile?.last_name
-                          ? `${booking.profile.first_name} ${booking.profile.last_name}`
-                          : "N/A"}
+                        {booking.profile?.name || "N/A"}
                       </td>
                       <td className="px-4 py-3 text-gray-400">
                         {booking.profile?.email || "N/A"}
