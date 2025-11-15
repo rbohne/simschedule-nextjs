@@ -36,7 +36,7 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState<Date>(getMSTNow());
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedSlots, setSelectedSlots] = useState<Date[]>([]);
-  const [userTotalBookedHours, setUserTotalBookedHours] = useState(0);
+  const [userTotalBookedHours, setUserTotalBookedHours] = useState(0); // Actually counts bookings now (1 booking = 2 hours)
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [tournamentMessages, setTournamentMessages] = useState<TournamentMessage[]>([]);
@@ -254,6 +254,7 @@ export default function Home() {
       .eq("user_id", user.id)
       .gte("end_time", now);
 
+    // Count total bookings (each booking is 2 hours)
     setUserTotalBookedHours(data?.length || 0);
   }
 
@@ -303,27 +304,37 @@ export default function Home() {
   }
 
   function toggleSlotSelection(timeSlot: Date) {
-    const isBooked = bookings.some(
+    // Check if this slot or the next hour is already booked
+    const nextHourSlot = new Date(timeSlot);
+    nextHourSlot.setHours(nextHourSlot.getHours() + 1);
+
+    const isStartSlotBooked = bookings.some(
       (b) => new Date(b.start_time).getTime() === timeSlot.getTime()
     );
+    const isNextSlotBooked = bookings.some(
+      (b) => new Date(b.start_time).getTime() === nextHourSlot.getTime()
+    );
 
-    if (isBooked) return;
+    if (isStartSlotBooked || isNextSlotBooked) {
+      setError('Both the selected hour and the next hour must be available for a 2-hour booking.');
+      return;
+    }
 
     const isSelected = selectedSlots.some(
       (s) => s.getTime() === timeSlot.getTime()
     );
 
     if (isSelected) {
-      setSelectedSlots(
-        selectedSlots.filter((s) => s.getTime() !== timeSlot.getTime())
-      );
-    } else if (userTotalBookedHours + selectedSlots.length < 2) {
-      setSelectedSlots([...selectedSlots, timeSlot]);
+      // Deselect this slot
+      setSelectedSlots([]);
+      setError(null);
+    } else if (userTotalBookedHours === 0) {
+      // User can book 1 slot (which is 2 hours)
+      setSelectedSlots([timeSlot]);
+      setError(null);
     } else {
-      const remainingHours = 2 - userTotalBookedHours;
       setError(
-        `You can only book a total of 2 hours. You currently have ${userTotalBookedHours} hour(s) booked and
-  ${remainingHours} hour(s) remaining.`
+        `You can only book 1 time slot (2 hours). You already have a booking.`
       );
     }
   }
@@ -334,30 +345,25 @@ export default function Home() {
     setError(null);
     setSuccess(null);
 
-    let successCount = 0;
+    // Book the selected slot (which will automatically be 2 hours)
+    const slot = selectedSlots[0];
+    const response = await fetch("/api/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        simulator: selectedSimulator,
+        start_time: slot.toISOString(),
+      }),
+    });
 
-    for (const slot of selectedSlots) {
-      const response = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          simulator: selectedSimulator,
-          start_time: slot.toISOString(),
-        }),
-      });
-
-      if (response.ok) {
-        successCount++;
-      }
-    }
-
-    if (successCount > 0) {
-      setSuccess(`Successfully booked ${successCount} time slot(s)!`);
+    if (response.ok) {
+      setSuccess(`Successfully booked your 2-hour time slot!`);
       setSelectedSlots([]);
       await loadBookings();
     } else {
+      const data = await response.json();
       setError(
-        "Unable to book the selected time slots. They may already be booked or you may have reached your total limit of 2 hours."
+        data.error || "Unable to book the selected time slot. It may already be booked or you may already have a booking."
       );
     }
   }
@@ -737,13 +743,8 @@ export default function Home() {
                 <span className="text-gray-300 text-sm">= Guest (click to remove)</span>
               </div>
               <div className="ml-auto font-bold text-gray-200">
-                Your Total Bookings: {userTotalBookedHours} / 2 hours
+                Your Bookings: {userTotalBookedHours} / 1 booking (2 hours each)
               </div>
-            </div>
-
-            {/* Guest Fee Info Note */}
-            <div className="mb-4 bg-blue-900/30 border border-blue-700 text-blue-200 px-4 py-2 rounded text-sm">
-              <strong>💡 Guest Fee Info:</strong> Only click the "Guest +$20" button once per visit, not for each hour slot you've booked.
             </div>
 
             {/* Messages and Actions - Combined fixed height area */}
@@ -783,7 +784,7 @@ export default function Home() {
               {selectedSlots.length > 0 && (
                 <div className="flex items-center gap-4">
                   <span className="font-bold text-gray-200">
-                    Selected: {selectedSlots.length} hour(s)
+                    Selected: 2 hours
                   </span>
                   <button
                     onClick={bookSelectedSlots}
@@ -811,15 +812,24 @@ export default function Home() {
                 const isPastSlot = isToday && slotEndTime <= mstNow;
                 if (isPastSlot && userProfile?.role !== "admin") return null;
 
-                const booking = bookings.find(
-                  (b) => new Date(b.start_time).getTime() === timeSlot.getTime()
-                );
+                // Check if this time slot falls within any booking (bookings are 2 hours long)
+                const booking = bookings.find((b) => {
+                  const bookingStart = new Date(b.start_time).getTime();
+                  const bookingEnd = new Date(b.end_time).getTime();
+                  const slotTime = timeSlot.getTime();
+                  return slotTime >= bookingStart && slotTime < bookingEnd;
+                });
                 const isBooked = !!booking;
                 const isUserBooking =
                   isBooked && user && booking.user_id === user.id;
-                const isSelected = selectedSlots.some(
-                  (s) => s.getTime() === timeSlot.getTime()
-                );
+                // Check if this slot is selected (either as the start hour or the second hour of a 2-hour selection)
+                const isSelected = selectedSlots.some((s) => {
+                  const selectedTime = s.getTime();
+                  const nextHourTime = new Date(s).setHours(s.getHours() + 1);
+                  return timeSlot.getTime() === selectedTime || timeSlot.getTime() === nextHourTime;
+                });
+                // Show which hour of the 2-hour booking this is
+                const isFirstHourOfBooking = booking && new Date(booking.start_time).getTime() === timeSlot.getTime();
 
                 return (
                   <div
@@ -856,46 +866,55 @@ export default function Home() {
                         <>
                           {isUserBooking ? (
                             <>
-                              {booking.guest_transactions && booking.guest_transactions.length > 0 && (
-                                <div className="flex gap-1">
-                                  {booking.guest_transactions.map((transaction) => (
-                                    <button
-                                      key={transaction.id}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        removeGuestFee(transaction.id, booking.user_id);
-                                      }}
-                                      className="text-2xl hover:opacity-60 transition-opacity"
-                                      style={{ filter: 'grayscale(100%) brightness(2.5)' }}
-                                      title="Click to remove this guest ($20)"
-                                    >
-                                      👤
-                                    </button>
-                                  ))}
-                                </div>
+                              {isFirstHourOfBooking ? (
+                                <>
+                                  {/* Only show action buttons on the first hour of the 2-hour booking */}
+                                  {booking.guest_transactions && booking.guest_transactions.length > 0 && (
+                                    <div className="flex gap-1">
+                                      {booking.guest_transactions.map((transaction) => (
+                                        <button
+                                          key={transaction.id}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            removeGuestFee(transaction.id, booking.user_id);
+                                          }}
+                                          className="text-2xl hover:opacity-60 transition-opacity"
+                                          style={{ filter: 'grayscale(100%) brightness(2.5)' }}
+                                          title="Click to remove this guest ($20)"
+                                        >
+                                          👤
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                  <span className="px-3 py-1 bg-green-800 text-gray-100 rounded text-sm border border-green-700">
+                                    Your Booking (2 hours)
+                                  </span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      addGuestFee(booking.id, booking.user_id);
+                                    }}
+                                    disabled={addingGuestFee === booking.id}
+                                    className="bg-purple-800 hover:bg-purple-700 text-gray-100 px-3 py-1 rounded text-sm disabled:opacity-50"
+                                  >
+                                    {addingGuestFee === booking.id ? "Adding..." : "Guest +$20"}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      cancelBooking(booking.id);
+                                    }}
+                                    className="bg-red-800 hover:bg-red-700 text-gray-100 px-3 py-1 rounded text-sm"
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              ) : (
+                                <span className="px-3 py-1 bg-green-800 text-gray-100 rounded text-sm border border-green-700">
+                                  Your Booking (hour 2)
+                                </span>
                               )}
-                              <span className="px-3 py-1 bg-green-800 text-gray-100 rounded text-sm border border-green-700">
-                                Your Booking
-                              </span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  addGuestFee(booking.id, booking.user_id);
-                                }}
-                                disabled={addingGuestFee === booking.id}
-                                className="bg-purple-800 hover:bg-purple-700 text-gray-100 px-3 py-1 rounded text-sm disabled:opacity-50"
-                              >
-                                {addingGuestFee === booking.id ? "Adding..." : "Guest +$20"}
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  cancelBooking(booking.id);
-                                }}
-                                className="bg-red-800 hover:bg-red-700 text-gray-100 px-3 py-1 rounded text-sm"
-                              >
-                                Cancel
-                              </button>
                             </>
                           ) : userProfile?.role === "admin" ? (
                             <>

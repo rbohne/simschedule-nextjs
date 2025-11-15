@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing parameters' }, { status: 400 })
   }
 
-  // Check total booked hours (2 hour limit)
+  // Check total booked bookings (1 booking limit, each booking is 2 hours)
   const now = new Date().toISOString()
   const { data: existingBookings, error: fetchError } = await supabase
     .from('bookings')
@@ -77,17 +77,17 @@ export async function POST(request: Request) {
     error: fetchError?.message
   })
 
-  if (existingBookings && existingBookings.length >= 2) {
-    console.log('[Booking API] User has reached 2 hour limit')
+  if (existingBookings && existingBookings.length >= 1) {
+    console.log('[Booking API] User has reached 1 booking limit')
     return NextResponse.json({
-      error: 'You already have 2 hours booked. Please cancel a booking first.'
+      error: 'You already have a booking (2 hours). Please cancel it first to book a different time.'
     }, { status: 400 })
   }
 
-  // Create booking
+  // Create booking - each booking is 2 hours
   const startTime = new Date(start_time)
   const endTime = new Date(startTime)
-  endTime.setHours(endTime.getHours() + 1)
+  endTime.setHours(endTime.getHours() + 2) // Changed from 1 to 2 hours
 
   console.log('[Booking API] Attempting to insert booking:', {
     user_id: user.id,
