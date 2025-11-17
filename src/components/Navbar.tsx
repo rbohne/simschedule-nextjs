@@ -208,6 +208,12 @@ export default function Navbar() {
                           >
                             Bookings Report
                           </Link>
+                          <Link
+                            href="/membership-inquiries"
+                            className="block px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 hover:text-white"
+                          >
+                            Membership Inquiries
+                          </Link>
                         </div>
                       </div>
                     </div>
@@ -338,6 +344,13 @@ export default function Navbar() {
                       onClick={() => setShowMobileMenu(false)}
                     >
                       Bookings Report
+                    </Link>
+                    <Link
+                      href="/membership-inquiries"
+                      className="block hover:text-gray-300 px-2 py-2 text-sm"
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      Membership Inquiries
                     </Link>
                   </div>
                 </>

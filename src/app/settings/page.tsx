@@ -135,6 +135,17 @@ export default function SettingsPage() {
                 </p>
               </div>
             </Link>
+
+            {/* Membership Inquiries Card */}
+            <Link href="/membership-inquiries">
+              <div className="bg-gray-800 rounded-lg shadow-lg p-8 text-center hover:shadow-xl transition-shadow cursor-pointer border-2 border-gray-700 hover:border-green-600">
+                <div className="text-6xl mb-4">📝</div>
+                <h3 className="text-2xl font-bold mb-2 text-gray-100">Membership Inquiries</h3>
+                <p className="text-gray-400">
+                  View inquiries from potential members
+                </p>
+              </div>
+            </Link>
           </div>
         </div>
       </div>

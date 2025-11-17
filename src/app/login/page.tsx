@@ -10,6 +10,15 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(true) // Default to checked
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showInquiryForm, setShowInquiryForm] = useState(false)
+  const [inquirySuccess, setInquirySuccess] = useState(false)
+  const [inquirySubmitting, setInquirySubmitting] = useState(false)
+  const [inquiryForm, setInquiryForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    message: ''
+  })
   const router = useRouter()
 
   // Clear any broken sessions on mount (especially important for mobile)
@@ -108,6 +117,31 @@ export default function LoginPage() {
     }
   }
 
+  async function handleInquirySubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setInquirySubmitting(true)
+
+    try {
+      const response = await fetch('/api/public/membership-inquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(inquiryForm)
+      })
+
+      if (response.ok) {
+        setInquirySuccess(true)
+        setInquiryForm({ name: '', email: '', phone: '', message: '' })
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Failed to submit inquiry')
+      }
+    } catch (err) {
+      setError('Failed to submit inquiry. Please try again.')
+    } finally {
+      setInquirySubmitting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-start justify-center bg-black pt-12">
       <div className="max-w-md w-full space-y-8 p-8 bg-black">
@@ -183,6 +217,137 @@ export default function LoginPage() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+
+        {/* Membership Information Section */}
+        <div className="mt-12 pt-8 border-t border-gray-700">
+          <h3 className="text-xl font-semibold text-center text-gray-100 mb-4">
+            Not a Member Yet?
+          </h3>
+
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-6 border border-gray-700 shadow-lg">
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">$</span>
+                </div>
+                <div>
+                  <h4 className="text-gray-100 font-medium">Annual Membership</h4>
+                  <p className="text-gray-300 text-lg font-semibold">$400/year</p>
+                  <p className="text-gray-400 text-sm">Unlimited access to both simulators</p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">+</span>
+                </div>
+                <div>
+                  <h4 className="text-gray-100 font-medium">Guest Policy</h4>
+                  <p className="text-gray-300">$20 per booking per guest</p>
+                  <p className="text-gray-400 text-sm">Guests can join members at any time. The fee is charged to the member's account.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 text-center">
+            {!showInquiryForm && !inquirySuccess && (
+              <button
+                onClick={() => setShowInquiryForm(true)}
+                className="bg-green-700 hover:bg-green-600 text-white px-6 py-3 rounded-md font-medium transition-colors"
+              >
+                Interested in Joining? Contact Us
+              </button>
+            )}
+
+            {inquirySuccess && (
+              <div className="bg-green-900/50 border border-green-700 text-green-200 px-4 py-3 rounded">
+                <p className="font-medium">Thank you for your interest!</p>
+                <p className="text-sm mt-1">We've received your inquiry and will get back to you soon.</p>
+              </div>
+            )}
+
+            {showInquiryForm && !inquirySuccess && (
+              <form onSubmit={handleInquirySubmit} className="mt-4 space-y-4 text-left">
+                <div>
+                  <label htmlFor="inquiry-name" className="block text-sm font-medium text-gray-300">
+                    Your Name *
+                  </label>
+                  <input
+                    id="inquiry-name"
+                    type="text"
+                    required
+                    value={inquiryForm.name}
+                    onChange={(e) => setInquiryForm({ ...inquiryForm, name: e.target.value })}
+                    className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+                    placeholder="John Doe"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="inquiry-email" className="block text-sm font-medium text-gray-300">
+                    Email Address *
+                  </label>
+                  <input
+                    id="inquiry-email"
+                    type="email"
+                    required
+                    value={inquiryForm.email}
+                    onChange={(e) => setInquiryForm({ ...inquiryForm, email: e.target.value })}
+                    className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="inquiry-phone" className="block text-sm font-medium text-gray-300">
+                    Phone Number (Optional)
+                  </label>
+                  <input
+                    id="inquiry-phone"
+                    type="tel"
+                    value={inquiryForm.phone}
+                    onChange={(e) => setInquiryForm({ ...inquiryForm, phone: e.target.value })}
+                    className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="inquiry-message" className="block text-sm font-medium text-gray-300">
+                    Message *
+                  </label>
+                  <textarea
+                    id="inquiry-message"
+                    required
+                    rows={3}
+                    value={inquiryForm.message}
+                    onChange={(e) => setInquiryForm({ ...inquiryForm, message: e.target.value })}
+                    className="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+                    placeholder="I'm interested in becoming a member..."
+                  />
+                </div>
+
+                <div className="flex space-x-3">
+                  <button
+                    type="submit"
+                    disabled={inquirySubmitting}
+                    className="flex-1 bg-green-700 hover:bg-green-600 text-white py-2 px-4 rounded-md font-medium disabled:opacity-50 transition-colors"
+                  >
+                    {inquirySubmitting ? 'Sending...' : 'Send Inquiry'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowInquiryForm(false)}
+                    className="bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 rounded-md"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

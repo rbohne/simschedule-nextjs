@@ -36,10 +36,7 @@ export async function GET(request: Request) {
   const adminClient = createAdminSupabaseClient()
   const { data: bookings, error } = await adminClient
     .from('bookings')
-    .select(`
-      *,
-      profile:profiles(*)
-    `)
+    .select('*')
     .gte('start_time', startDate)
     .lte('start_time', endDate)
     .order('start_time', { ascending: false })
@@ -55,5 +52,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(bookings)
+  // Fetch profiles separately since there's no foreign key relationship
+  const userIds = [...new Set(bookings?.map(b => b.user_id) || [])]
+  const { data: profiles } = await adminClient
+    .from('profiles')
+    .select('*')
+    .in('id', userIds)
+
+  // Map profiles to bookings
+  const profileMap = new Map(profiles?.map(p => [p.id, p]) || [])
+  const bookingsWithProfiles = bookings?.map(booking => ({
+    ...booking,
+    profile: profileMap.get(booking.user_id) || null
+  })) || []
+
+  return NextResponse.json(bookingsWithProfiles)
 }
