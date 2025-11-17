@@ -37,8 +37,9 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 
 ### 1. Booking System
 - **Simulator Selection**: East Sim and West Sim
-- **Time Slots**: 6:00 AM - 11:00 PM (1-hour blocks)
-- **Booking Limits**: Maximum 2 hours per user across all bookings
+- **Time Slots**: 6:00 AM - 2:00 AM next day (2-hour blocks)
+- **Booking Structure**: Each booking is exactly 2 hours (no longer individual 1-hour slots)
+- **Booking Limits**: Maximum 1 booking per user (2 hours total)
 - **Timezone**: MST (UTC-7)
 - **Visual Indicators**:
   - Gray: Available slots
@@ -46,6 +47,7 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
   - Green: User's own bookings
   - Yellow: Selected (before booking)
   - Past slots (admin only): Gray with reduced opacity
+- **Two-Hour System**: When a user selects a time slot, it automatically books both that hour and the next hour as a single 2-hour booking
 
 ### 2. Authentication
 - Email/password login via Supabase
@@ -65,6 +67,10 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 **For Users:**
 - Outstanding balance displayed prominently on home page
 - Shows "Guest Fees Due: $XX.XX" below simulator selection
+- **View Details Button**: Opens modal showing itemized guest fee transactions
+  - Lists each guest fee with booking date/time and simulator
+  - Shows individual amounts (+$20.00 per transaction)
+  - Displays total due at bottom
 - Only appears when balance > $0
 - Updates automatically on login
 
@@ -140,7 +146,47 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 - Displayed on home page for all users
 - Yellow alert boxes with HTML formatting support
 
-### 9. Profile Management
+### 9. Membership Inquiry System
+
+**Public Login Page Features:**
+- Displays membership information for non-members:
+  - $400/year membership cost
+  - $20 guest fee policy
+- **Membership Inquiry Form**:
+  - Name, email, phone (optional), and message fields
+  - Available to non-authenticated users
+  - Stores inquiries in dedicated `membership_inquiries` table (no foreign key constraints)
+
+**Admin Management** (Settings → Membership Inquiries):
+- View all inquiries with filtering:
+  - All, Unread, Read, Resolved
+- Auto-marks as read when viewed
+- Add admin notes
+- Mark as resolved
+- Delete inquiries
+- Green dot indicator for new/unread inquiries
+- Click-through to detailed view modal
+
+### 10. Bookings Report (Admin Only)
+
+**Access**: Settings → Bookings Report (via dropdown menu)
+
+**Features**:
+- Date range selection for reporting period
+- Lists all bookings within selected range
+- Shows user name, simulator, date/time
+- Useful for reviewing booking patterns and usage
+
+### 11. Membership Report (Admin Only)
+
+**Access**: Settings → Membership Report
+
+**Features**:
+- View membership status for all users
+- Track active and expired memberships
+- Monitor membership renewal dates
+
+### 12. Profile Management
 **All Users**:
 - Change password functionality
 - Auto-logout after successful password change
@@ -200,6 +246,17 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 - `created_at` (timestamp)
 - `updated_at` (timestamp)
 
+#### `membership_inquiries`
+- `id` (bigint, primary key, auto-generated)
+- `name` (text, not null)
+- `email` (text, not null)
+- `phone` (text, nullable)
+- `message` (text, not null)
+- `submitted_at` (timestamptz, default now())
+- `is_read` (boolean, default false)
+- `is_resolved` (boolean, default false)
+- `admin_notes` (text, nullable)
+
 ### Storage Buckets
 
 #### `profile-pictures`
@@ -216,8 +273,8 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 ## Key Pages
 
 ### Public/User Pages
-- `/login` - Authentication with Remember Me
-- `/` - Home page with simulator selection, bookings, guest fees balance
+- `/login` - Authentication with Remember Me, membership info, and inquiry form
+- `/` - Home page with simulator selection, bookings, guest fees balance with View Details modal
 - `/profile` - Password change functionality
 - `/contact` - Contact form for support requests
 
@@ -227,6 +284,9 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 - `/messages` - View and manage contact form submissions
 - `/tournament-messages` - Manage home page announcements
 - `/payments` - View outstanding balances and manage payments
+- `/membership-inquiries` - View and manage public membership inquiries
+- `/bookings-report` - View booking history by date range
+- `/membership-report` - View membership status for all users
 
 ## API Endpoints
 
@@ -252,6 +312,21 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 - **POST**: Create message (admin only)
 - **PUT**: Update message (admin only)
 - **DELETE**: Delete message (admin only)
+
+### `/api/public/membership-inquiry`
+- **POST**: Submit new membership inquiry (no auth required)
+  - Stores in `membership_inquiries` table
+  - No foreign key constraints (allows public submission)
+
+### `/api/admin/membership-inquiries`
+- **GET**: Fetch all inquiries (admin only)
+- **PATCH**: Update inquiry status (admin only)
+- **DELETE**: Delete inquiry (admin only)
+
+### `/api/admin/bookings-report`
+- **GET**: Fetch bookings within date range (admin only)
+  - Query params: `startDate`, `endDate`
+  - Returns bookings with associated user profiles
 
 ## Security Features
 
@@ -303,6 +378,11 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 9. Outstanding guest fees display on home page
 10. Remember Me checkbox on login
 11. Admin date navigation (view any past/future date)
+12. Extended time slots to 2:00 AM (midnight, 1 AM, 2 AM slots)
+13. Changed booking system from 2 individual 1-hour slots to single 2-hour bookings
+14. Bookings report with date range filtering
+15. Membership inquiry system for non-members on login page
+16. Guest fee details modal with itemized transaction breakdown
 
 ## Configuration
 
@@ -315,16 +395,18 @@ Hardcoded in `src/lib/supabase.ts` due to Next.js 16.0.1/Turbopack limitations:
 Located in `supabase/migrations/`:
 - `20250112_add_profile_pictures.sql` - Profile pictures feature
 - `20250112_add_guest_fees.sql` - Guest fee tracking system
+- `20251116_add_membership_inquiries.sql` - Membership inquiry table (no foreign key constraints)
 
 Run migrations via Supabase Dashboard SQL Editor.
 
 ## Known Limitations
 
 1. **File Uploads**: Limited to 10MB for profile pictures
-2. **Booking Limit**: Hard-coded 2-hour limit per user
-3. **Time Slots**: Fixed 1-hour blocks, 6 AM - 11 PM
+2. **Booking Limit**: Hard-coded 1 booking (2 hours) per user
+3. **Time Slots**: Fixed 2-hour blocks, 6 AM - 2 AM next day
 4. **Timezone**: Fixed to MST (UTC-7)
 5. **Week View**: Regular users see 7 days (today + 6), admins see 7 days centered around selected date
+6. **Membership Inquiries**: No automated email notifications to admins (manual checking required)
 
 ## Support & Maintenance
 
@@ -359,6 +441,6 @@ pnpm run dev
 
 ---
 
-**Last Updated**: November 12, 2025
-**Version**: 1.0
+**Last Updated**: November 16, 2025
+**Version**: 1.1
 **Maintained by**: Claude Code
