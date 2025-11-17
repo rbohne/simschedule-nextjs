@@ -44,6 +44,8 @@ export default function Home() {
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [addingGuestFee, setAddingGuestFee] = useState<number | null>(null);
   const [userBalance, setUserBalance] = useState(0);
+  const [userTransactions, setUserTransactions] = useState<any[]>([]);
+  const [showTransactionsModal, setShowTransactionsModal] = useState(false);
 
   const router = useRouter();
   const supabase = createClient();
@@ -77,6 +79,10 @@ export default function Home() {
       const response = await fetch(`/api/transactions?userId=${userId}`);
       if (response.ok) {
         const transactions = await response.json();
+
+        // Store transactions for details modal (only guest fees)
+        const guestFeeTransactions = transactions.filter((t: any) => t.type === 'guest_fee');
+        setUserTransactions(guestFeeTransactions);
 
         // Calculate total balance from all transactions
         const balance = transactions.reduce((sum: number, trans: any) => {
@@ -551,9 +557,137 @@ export default function Home() {
                     <p className="text-3xl font-bold text-red-100 mb-3">
                       ${userBalance.toFixed(2)}
                     </p>
+                    <button
+                      onClick={() => setShowTransactionsModal(true)}
+                      className="bg-red-800 hover:bg-red-700 text-red-100 px-4 py-2 rounded text-sm mb-3 border border-red-600"
+                    >
+                      View Details
+                    </button>
                     <p className="text-sm text-red-200">
                       Please send e-transfer to <span className="font-semibold">golfthecave@gmail.com</span>
                     </p>
+                    {/* Guest Fee Transactions Modal */}
+                    {showTransactionsModal && (
+                      <div
+                        id="guest-fee-modal"
+                        style={{
+                          position: 'fixed',
+                          top: 0,
+                          left: 0,
+                          width: '100vw',
+                          height: '100vh',
+                          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '1rem',
+                          zIndex: 99999
+                        }}
+                        onClick={() => setShowTransactionsModal(false)}
+                      >
+                        <div
+                          style={{
+                            backgroundColor: '#1f2937',
+                            borderRadius: '0.5rem',
+                            maxWidth: '42rem',
+                            width: '100%',
+                            maxHeight: '80vh',
+                            overflowY: 'auto',
+                            border: '1px solid #374151'
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div style={{
+                            position: 'sticky',
+                            top: 0,
+                            backgroundColor: '#111827',
+                            borderBottom: '1px solid #374151',
+                            padding: '1rem 1.5rem',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#f3f4f6', margin: 0 }}>
+                              Guest Fee Details
+                            </h2>
+                            <button
+                              onClick={() => setShowTransactionsModal(false)}
+                              style={{ color: '#9ca3af', fontSize: '1.5rem', background: 'none', border: 'none', cursor: 'pointer' }}
+                            >
+                              ×
+                            </button>
+                          </div>
+
+                          <div style={{ padding: '1.5rem' }}>
+                            {userTransactions.length === 0 ? (
+                              <p style={{ color: '#9ca3af', textAlign: 'center', padding: '1rem 0' }}>No guest fee transactions found.</p>
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {userTransactions.map((transaction: any) => {
+                                  const bookingDate = transaction.booking ? new Date(transaction.booking.start_time) : null;
+                                  const transactionDate = new Date(transaction.created_at);
+
+                                  return (
+                                    <div
+                                      key={transaction.id}
+                                      style={{
+                                        backgroundColor: '#374151',
+                                        borderRadius: '0.25rem',
+                                        padding: '1rem',
+                                        border: '1px solid #4b5563'
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div>
+                                          {bookingDate && (
+                                            <div style={{ color: '#e5e7eb', fontWeight: '500' }}>
+                                              {bookingDate.toLocaleDateString("en-US", {
+                                                weekday: "short",
+                                                month: "short",
+                                                day: "numeric",
+                                                year: "numeric"
+                                              })}
+                                              {" at "}
+                                              {bookingDate.toLocaleTimeString("en-US", {
+                                                hour: "numeric",
+                                                minute: "2-digit",
+                                                hour12: true
+                                              })}
+                                            </div>
+                                          )}
+                                          {transaction.booking && (
+                                            <div style={{ fontSize: '0.875rem', color: '#9ca3af' }}>
+                                              {transaction.booking.simulator.charAt(0).toUpperCase() + transaction.booking.simulator.slice(1)} Simulator
+                                            </div>
+                                          )}
+                                          <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                                            Recorded: {transactionDate.toLocaleDateString("en-US", {
+                                              month: "short",
+                                              day: "numeric",
+                                              year: "numeric"
+                                            })}
+                                          </div>
+                                        </div>
+                                        <div style={{ color: '#f87171', fontWeight: 'bold', fontSize: '1.125rem' }}>
+                                          +${parseFloat(transaction.amount).toFixed(2)}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+
+                                <div style={{ borderTop: '1px solid #4b5563', paddingTop: '1rem', marginTop: '1rem' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ color: '#e5e7eb', fontWeight: '600' }}>Total Due:</span>
+                                    <span style={{ color: '#f87171', fontWeight: 'bold', fontSize: '1.25rem' }}>${userBalance.toFixed(2)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
