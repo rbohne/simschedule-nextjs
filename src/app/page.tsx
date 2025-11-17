@@ -660,13 +660,6 @@ export default function Home() {
                                               {transaction.booking.simulator.charAt(0).toUpperCase() + transaction.booking.simulator.slice(1)} Simulator
                                             </div>
                                           )}
-                                          <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                                            Recorded: {transactionDate.toLocaleDateString("en-US", {
-                                              month: "short",
-                                              day: "numeric",
-                                              year: "numeric"
-                                            })}
-                                          </div>
                                         </div>
                                         <div style={{ color: '#f87171', fontWeight: 'bold', fontSize: '1.125rem' }}>
                                           +${parseFloat(transaction.amount).toFixed(2)}
