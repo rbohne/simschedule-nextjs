@@ -63,25 +63,44 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing parameters' }, { status: 400 })
   }
 
-  // Check total booked bookings (1 booking limit, each booking is 2 hours)
-  const now = new Date().toISOString()
-  const { data: existingBookings, error: fetchError } = await supabase
-    .from('bookings')
-    .select('*')
-    .eq('user_id', user.id)
-    .gte('end_time', now)
+  // Check if user is admin
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single()
 
-  console.log('[Booking API] Existing bookings check:', {
-    count: existingBookings?.length,
-    hasError: !!fetchError,
-    error: fetchError?.message
+  const isAdmin = profile?.is_admin === true
+
+  console.log('[Booking API] User profile check:', {
+    userId: user.id,
+    isAdmin
   })
 
-  if (existingBookings && existingBookings.length >= 1) {
-    console.log('[Booking API] User has reached 1 booking limit')
-    return NextResponse.json({
-      error: 'You already have a booking (2 hours). Please cancel it first to book a different time.'
-    }, { status: 400 })
+  // Check total booked bookings (1 booking limit for regular users, unlimited for admins)
+  // Each booking is 2 hours
+  if (!isAdmin) {
+    const now = new Date().toISOString()
+    const { data: existingBookings, error: fetchError } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('end_time', now)
+
+    console.log('[Booking API] Existing bookings check:', {
+      count: existingBookings?.length,
+      hasError: !!fetchError,
+      error: fetchError?.message
+    })
+
+    if (existingBookings && existingBookings.length >= 1) {
+      console.log('[Booking API] User has reached 1 booking limit')
+      return NextResponse.json({
+        error: 'You already have a booking (2 hours). Please cancel it first to book a different time.'
+      }, { status: 400 })
+    }
+  } else {
+    console.log('[Booking API] Admin user - skipping booking limit check')
   }
 
   // Create booking - each booking is 2 hours
