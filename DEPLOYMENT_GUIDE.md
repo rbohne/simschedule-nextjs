@@ -63,10 +63,15 @@ Replace `YOUR-USERNAME` with your actual GitHub username.
 Click "Environment Variables" and add these:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL = https://uxtdsiqlzhzrwqyozuho.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4dGRzaXFsemh6cndxeW96dWhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2NTQ0MjksImV4cCI6MjA3ODIzMDQyOX0.jsXukhV2ApAv1cay_59nChhoq8XQmcfJDXlYLamLHGE
-SUPABASE_SERVICE_ROLE_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4dGRzaXFsemh6cndxeW96dWhvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjY1NDQyOSwiZXhwIjoyMDc4MjMwNDI5fQ.AOmg3wiDAYe4JyQVVFcUbUadXNhgSTPQQ-YuF64lpBc
+NEXT_PUBLIC_SUPABASE_URL = your-supabase-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY = your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY = your-supabase-service-role-key
 ```
+
+**To find these values:**
+1. Go to your Supabase project dashboard
+2. Click "Settings" (gear icon) > "API"
+3. Copy the URL and keys from there
 
 4. Click "Deploy"
 
