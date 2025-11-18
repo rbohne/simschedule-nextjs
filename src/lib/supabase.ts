@@ -3,7 +3,7 @@ import { createBrowserClient, type CookieOptions } from "@supabase/ssr";
 export function createClient(useSessionStorage?: boolean) {
   // Hardcoded values - Next.js 16.0.1 with Turbopack isn't replacing process.env in browser
   const supabaseUrl = "https://uxtdsiqlzhzrwqyozuho.supabase.co";
-  const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4dGRzaXFsemh6cndxeW96dWhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2NTQ0MjksImV4cCI6MjA3ODIzMDQyOX0.jsXukhV2ApAv1cay_59nChhoq8XQmcfJDXlYLamLHGE";
+  const supabaseAnonKey = "sb_publishable_gPV9pjTLd4XqgnmGxk7aTw_Ylne86n8";
 
   // Determine which storage to use based on Remember Me preference
   // Auto-detect from both storages if not specified
