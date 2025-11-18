@@ -334,7 +334,7 @@ export default function Home() {
       // Deselect this slot
       setSelectedSlots([]);
       setError(null);
-    } else if (userProfile?.is_admin || userTotalBookedHours === 0) {
+    } else if (userProfile?.role === 'admin' || userTotalBookedHours === 0) {
       // Admins can book unlimited slots, regular users can book 1 slot (which is 2 hours)
       setSelectedSlots([timeSlot]);
       setError(null);
@@ -870,7 +870,7 @@ export default function Home() {
                 <span className="text-gray-300 text-sm">= Guest (click to remove)</span>
               </div>
               <div className="ml-auto font-bold text-gray-200">
-                Your Bookings: {userTotalBookedHours} {userProfile?.is_admin ? '(unlimited)' : '/ 1 booking'} (2 hours each)
+                Your Bookings: {userTotalBookedHours} {userProfile?.role === 'admin' ? '(unlimited)' : '/ 1 booking'} (2 hours each)
               </div>
             </div>
 

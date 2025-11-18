@@ -66,11 +66,11 @@ export async function POST(request: Request) {
   // Check if user is admin
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_admin')
+    .select('role')
     .eq('id', user.id)
     .single()
 
-  const isAdmin = profile?.is_admin === true
+  const isAdmin = profile?.role === 'admin'
 
   console.log('[Booking API] User profile check:', {
     userId: user.id,
