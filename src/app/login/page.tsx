@@ -359,6 +359,22 @@ export default function LoginPage() {
                 </form>
               )}
             </div>
+
+            {/* Terms and Conditions Link */}
+            <div className="mt-6 pt-6 border-t border-gray-700 text-center">
+              <p className="text-gray-400 text-sm">
+                Feel free to read the{' '}
+                <a
+                  href="/Terms-and-Conditions.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 underline"
+                >
+                  Terms and Conditions
+                </a>
+                .
+              </p>
+            </div>
           </div>
         </div>
       </div>
