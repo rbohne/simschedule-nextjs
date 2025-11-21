@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase";
 import type { Simulator, Booking } from "@/types/database";
 
 // MST is UTC-7
@@ -19,26 +18,43 @@ function getMSTNow(): Date {
 export default function DisplayPage() {
   const [eastBookings, setEastBookings] = useState<Booking[]>([]);
   const [westBookings, setWestBookings] = useState<Booking[]>([]);
-  const [currentTime, setCurrentTime] = useState<Date>(getMSTNow());
-  const [lastUpdate, setLastUpdate] = useState<Date>(getMSTNow());
-  const supabase = createClient();
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [mounted, setMounted] = useState(false);
+
+  // Fix hydration by only using MST time after mount
+  useEffect(() => {
+    setMounted(true);
+    setCurrentTime(getMSTNow());
+    setLastUpdate(getMSTNow());
+  }, []);
 
   async function loadBookings(simulator: Simulator) {
     const today = getMSTNow();
     const startOfDay = new Date(today);
     startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(today);
-    endOfDay.setHours(23, 59, 59, 999);
 
-    const { data } = await supabase
-      .from("bookings")
-      .select("*, profile:profiles(*)")
-      .eq("simulator", simulator)
-      .gte("start_time", startOfDay.toISOString())
-      .lte("start_time", endOfDay.toISOString())
-      .order("start_time", { ascending: true });
+    console.log(`[Display] Loading bookings for ${simulator}:`, {
+      date: startOfDay.toISOString(),
+    });
 
-    return data || [];
+    try {
+      const response = await fetch(
+        `/api/bookings-display?simulator=${simulator}&date=${startOfDay.toISOString()}`
+      );
+
+      if (!response.ok) {
+        console.error(`[Display] Error loading ${simulator} bookings:`, response.statusText);
+        return [];
+      }
+
+      const data = await response.json();
+      console.log(`[Display] Loaded ${data?.length || 0} bookings for ${simulator}`);
+      return data || [];
+    } catch (error) {
+      console.error(`[Display] Error loading ${simulator} bookings:`, error);
+      return [];
+    }
   }
 
   async function refreshBookings() {
@@ -178,6 +194,15 @@ export default function DisplayPage() {
             );
           })}
         </div>
+      </div>
+    );
+  }
+
+  // Don't render until mounted to avoid hydration issues
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-gray-100 text-2xl">Loading...</div>
       </div>
     );
   }
