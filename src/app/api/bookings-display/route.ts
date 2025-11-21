@@ -20,9 +20,9 @@ export async function GET(request: Request) {
   const endOfDay = new Date(date)
   endOfDay.setHours(23, 59, 59, 999)
 
-  const { data, error } = await supabase
+  const { data: bookings, error } = await supabase
     .from('bookings')
-    .select('*, profile:profiles(*)')
+    .select('*')
     .eq('simulator', simulator)
     .gte('start_time', startOfDay.toISOString())
     .lte('start_time', endOfDay.toISOString())
@@ -33,5 +33,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(data)
+  // Fetch profiles for the bookings
+  if (bookings && bookings.length > 0) {
+    const userIds = [...new Set(bookings.map((b: any) => b.user_id))]
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', userIds)
+
+    // Attach profiles to bookings
+    const bookingsWithProfiles = bookings.map((booking: any) => ({
+      ...booking,
+      profile: profiles?.find((p) => p.id === booking.user_id),
+    }))
+
+    return NextResponse.json(bookingsWithProfiles)
+  }
+
+  return NextResponse.json(bookings)
 }
