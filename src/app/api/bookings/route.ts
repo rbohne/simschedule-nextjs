@@ -54,9 +54,9 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { simulator, start_time } = body
+  const { simulator, start_time, targetUserId } = body
 
-  console.log('[Booking API] Request params:', { simulator, start_time, userId: user.id })
+  console.log('[Booking API] Request params:', { simulator, start_time, userId: user.id, targetUserId })
 
   if (!simulator || !start_time) {
     console.log('[Booking API] Missing parameters')
@@ -77,30 +77,70 @@ export async function POST(request: Request) {
     isAdmin
   })
 
+  // If targetUserId is provided, only admins can use it
+  if (targetUserId && !isAdmin) {
+    console.log('[Booking API] Non-admin user attempted to book for another user')
+    return NextResponse.json({ error: 'Unauthorized: Only admins can book for other users' }, { status: 403 })
+  }
+
+  // Determine which user the booking is for
+  const bookingUserId = targetUserId || user.id
+
+  // Check if target user exists (if booking for another user)
+  if (targetUserId) {
+    const { data: targetUser } = await supabase
+      .from('profiles')
+      .select('id, name, role')
+      .eq('id', targetUserId)
+      .single()
+
+    if (!targetUser) {
+      console.log('[Booking API] Target user not found:', targetUserId)
+      return NextResponse.json({ error: 'Target user not found' }, { status: 404 })
+    }
+
+    console.log('[Booking API] Booking for target user:', {
+      targetUserId: targetUser.id,
+      targetUserName: targetUser.name,
+      targetUserRole: targetUser.role
+    })
+  }
+
   // Check total booked bookings (1 booking limit for regular users, unlimited for admins)
   // Each booking is 2 hours
-  if (!isAdmin) {
+  // Check booking limits for the user who will have the booking
+  const { data: targetUserProfile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', bookingUserId)
+    .single()
+
+  const isTargetUserAdmin = targetUserProfile?.role === 'admin'
+
+  if (!isTargetUserAdmin) {
     const now = new Date().toISOString()
     const { data: existingBookings, error: fetchError } = await supabase
       .from('bookings')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', bookingUserId)
       .gte('end_time', now)
 
     console.log('[Booking API] Existing bookings check:', {
+      bookingUserId,
       count: existingBookings?.length,
       hasError: !!fetchError,
       error: fetchError?.message
     })
 
     if (existingBookings && existingBookings.length >= 1) {
+      const userName = targetUserId ? 'This user' : 'You'
       console.log('[Booking API] User has reached 1 booking limit')
       return NextResponse.json({
-        error: 'You already have a booking (2 hours). Please cancel it first to book a different time.'
+        error: `${userName} already ha${targetUserId ? 's' : 've'} a booking (2 hours). Please cancel it first to book a different time.`
       }, { status: 400 })
     }
   } else {
-    console.log('[Booking API] Admin user - skipping booking limit check')
+    console.log('[Booking API] Target user is admin - skipping booking limit check')
   }
 
   // Create booking - each booking is 2 hours
@@ -109,16 +149,20 @@ export async function POST(request: Request) {
   endTime.setHours(endTime.getHours() + 2) // Changed from 1 to 2 hours
 
   console.log('[Booking API] Attempting to insert booking:', {
-    user_id: user.id,
+    user_id: bookingUserId,
     simulator,
     start_time: startTime.toISOString(),
-    end_time: endTime.toISOString()
+    end_time: endTime.toISOString(),
+    bookedByAdmin: targetUserId ? user.id : null
   })
 
-  const { data, error } = await supabase
+  // If booking for another user, use admin client to bypass RLS
+  const clientToUse = targetUserId ? createAdminSupabaseClient() : supabase
+
+  const { data, error } = await clientToUse
     .from('bookings')
     .insert({
-      user_id: user.id,
+      user_id: bookingUserId,
       simulator,
       start_time: startTime.toISOString(),
       end_time: endTime.toISOString(),

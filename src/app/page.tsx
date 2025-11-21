@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
@@ -46,7 +46,12 @@ export default function Home() {
   const [userBalance, setUserBalance] = useState(0);
   const [userTransactions, setUserTransactions] = useState<any[]>([]);
   const [showTransactionsModal, setShowTransactionsModal] = useState(false);
+  const [allUsers, setAllUsers] = useState<Profile[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
+  const comboboxRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -59,6 +64,10 @@ export default function Home() {
 
     if (data) {
       setUserProfile(data);
+      // Load all users if admin
+      if (data.role === 'admin') {
+        loadAllUsers();
+      }
     }
   }
 
@@ -93,6 +102,18 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error loading user balance:', error);
+    }
+  }
+
+  async function loadAllUsers() {
+    try {
+      const response = await fetch('/api/users');
+      if (response.ok) {
+        const users = await response.json();
+        setAllUsers(users);
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
     }
   }
 
@@ -271,6 +292,22 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSimulator, selectedDate]);
 
+  // Handle clicks outside the combobox to close dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (comboboxRef.current && !comboboxRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
+      }
+    }
+
+    if (showUserDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showUserDropdown]);
+
   function selectSimulator(simulator: Simulator) {
     setSelectedSimulator(simulator);
     setSelectedDate(getMSTNow());
@@ -353,18 +390,30 @@ export default function Home() {
 
     // Book the selected slot (which will automatically be 2 hours)
     const slot = selectedSlots[0];
+    const bookingData: any = {
+      simulator: selectedSimulator,
+      start_time: slot.toISOString(),
+    };
+
+    // If admin is booking for another user, include the target user ID
+    if (userProfile?.role === 'admin' && selectedUserId) {
+      bookingData.targetUserId = selectedUserId;
+    }
+
     const response = await fetch("/api/bookings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        simulator: selectedSimulator,
-        start_time: slot.toISOString(),
-      }),
+      body: JSON.stringify(bookingData),
     });
 
     if (response.ok) {
-      setSuccess(`Successfully booked your 2-hour time slot!`);
+      const bookedForUser = allUsers.find(u => u.id === selectedUserId);
+      const userName = bookedForUser ? bookedForUser.name : 'your';
+      setSuccess(`Successfully booked ${userName === 'your' ? 'your' : userName + "'s"} 2-hour time slot!`);
       setSelectedSlots([]);
+      setSelectedUserId(null); // Reset selection
+      setUserSearchQuery(''); // Reset search
+      setShowUserDropdown(false); // Hide dropdown
       await loadBookings();
     } else {
       const data = await response.json();
@@ -909,10 +958,82 @@ export default function Home() {
 
               {/* Selected slots action bar */}
               {selectedSlots.length > 0 && (
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
                   <span className="font-bold text-gray-200">
                     Selected: 2 hours
                   </span>
+                  {userProfile?.role === 'admin' && (
+                    <div className="flex items-center gap-2 relative">
+                      <label className="text-gray-200 text-sm font-medium">Book for:</label>
+                      <div className="relative" ref={comboboxRef}>
+                        <input
+                          type="text"
+                          value={
+                            selectedUserId
+                              ? allUsers.find(u => u.id === selectedUserId)?.name || ''
+                              : userSearchQuery || 'Myself'
+                          }
+                          onChange={(e) => {
+                            setUserSearchQuery(e.target.value);
+                            setSelectedUserId(null);
+                            setShowUserDropdown(true);
+                          }}
+                          onFocus={() => setShowUserDropdown(true)}
+                          placeholder="Search or select user..."
+                          className="bg-gray-700 border border-gray-600 text-gray-100 rounded px-3 py-2 text-sm w-64"
+                        />
+                        {showUserDropdown && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600 rounded shadow-lg max-h-60 overflow-y-auto z-50">
+                            <button
+                              onClick={() => {
+                                setSelectedUserId(null);
+                                setUserSearchQuery('');
+                                setShowUserDropdown(false);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-gray-600 text-gray-100 text-sm border-b border-gray-600"
+                            >
+                              Myself
+                            </button>
+                            {allUsers
+                              .filter(u => u.id !== user?.id)
+                              .filter(u => u.name.toLowerCase().includes(userSearchQuery.toLowerCase()))
+                              .sort((a, b) => a.name.localeCompare(b.name))
+                              .map(u => (
+                                <button
+                                  key={u.id}
+                                  onClick={() => {
+                                    setSelectedUserId(u.id);
+                                    setUserSearchQuery('');
+                                    setShowUserDropdown(false);
+                                  }}
+                                  className="w-full text-left px-3 py-2 hover:bg-gray-600 text-gray-100 text-sm"
+                                >
+                                  {u.name}
+                                </button>
+                              ))
+                            }
+                            {allUsers.filter(u => u.id !== user?.id && u.name.toLowerCase().includes(userSearchQuery.toLowerCase())).length === 0 && userSearchQuery && (
+                              <div className="px-3 py-2 text-gray-400 text-sm">
+                                No users found
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {selectedUserId && (
+                        <button
+                          onClick={() => {
+                            setSelectedUserId(null);
+                            setUserSearchQuery('');
+                          }}
+                          className="text-gray-400 hover:text-gray-200 text-sm"
+                          title="Clear selection"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  )}
                   <button
                     onClick={bookSelectedSlots}
                     className="bg-green-800 hover:bg-green-700 text-gray-100 px-4 py-2 rounded"
@@ -920,7 +1041,12 @@ export default function Home() {
                     Book Selected Times
                   </button>
                   <button
-                    onClick={() => setSelectedSlots([])}
+                    onClick={() => {
+                      setSelectedSlots([]);
+                      setSelectedUserId(null);
+                      setUserSearchQuery('');
+                      setShowUserDropdown(false);
+                    }}
                     className="bg-gray-700 hover:bg-gray-600 text-gray-100 px-4 py-2 rounded"
                   >
                     Clear
