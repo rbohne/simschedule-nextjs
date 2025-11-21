@@ -996,8 +996,8 @@ export default function Home() {
                             </button>
                             {allUsers
                               .filter(u => u.id !== user?.id)
-                              .filter(u => u.name.toLowerCase().includes(userSearchQuery.toLowerCase()))
-                              .sort((a, b) => a.name.localeCompare(b.name))
+                              .filter(u => u.name && u.name.toLowerCase().includes(userSearchQuery.toLowerCase()))
+                              .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
                               .map(u => (
                                 <button
                                   key={u.id}
@@ -1012,7 +1012,7 @@ export default function Home() {
                                 </button>
                               ))
                             }
-                            {allUsers.filter(u => u.id !== user?.id && u.name.toLowerCase().includes(userSearchQuery.toLowerCase())).length === 0 && userSearchQuery && (
+                            {allUsers.filter(u => u.id !== user?.id && u.name && u.name.toLowerCase().includes(userSearchQuery.toLowerCase())).length === 0 && userSearchQuery && (
                               <div className="px-3 py-2 text-gray-400 text-sm">
                                 No users found
                               </div>
