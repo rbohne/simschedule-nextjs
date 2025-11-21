@@ -113,16 +113,16 @@ export default function DisplayPage() {
     const now = getMSTNow();
 
     return (
-      <div className="flex-1 p-6">
+      <div className="flex-1 px-4 py-3">
         {/* Simulator Header */}
-        <div className="bg-gray-800 rounded-lg p-6 mb-6 text-center">
+        <div className="bg-gray-800 rounded-lg py-3 px-4 mb-3 text-center">
           <h2 className="text-4xl font-bold text-gray-100 uppercase">
             {simulator} Simulator
           </h2>
         </div>
 
         {/* Time Slots */}
-        <div className="space-y-3">
+        <div className="space-y-1.5">
           {timeSlots.map((timeSlot) => {
             const slotEndTime = new Date(timeSlot);
             slotEndTime.setHours(slotEndTime.getHours() + 1);
@@ -156,19 +156,19 @@ export default function DisplayPage() {
             return (
               <div
                 key={timeSlot.getTime()}
-                className={`rounded-lg border-2 flex justify-between items-center ${
-                  isBooked ? 'p-6' : 'p-4'
+                className={`rounded border-2 flex justify-between items-center ${
+                  isBooked ? 'py-3 px-4' : 'py-2 px-3'
                 } ${
                   isPast
                     ? "bg-gray-900 border-gray-800 opacity-40"
                     : isCurrent
-                    ? "bg-yellow-900/40 border-yellow-600 border-4"
+                    ? "bg-yellow-900/40 border-yellow-600 border-2"
                     : isBooked
                     ? "bg-blue-900/40 border-blue-700"
                     : "bg-gray-800 border-gray-600"
                 }`}
               >
-                <div className={`font-bold text-gray-200 ${isBooked ? 'text-2xl' : 'text-xl'}`}>
+                <div className={`font-bold text-gray-200 ${isBooked ? 'text-lg' : 'text-base'}`}>
                   {timeSlot.toLocaleTimeString("en-US", {
                     hour: "numeric",
                     minute: "2-digit",
@@ -184,20 +184,20 @@ export default function DisplayPage() {
 
                 <div>
                   {isBooked ? (
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                       {booking.profile?.profile_picture_url && (
                         <img
                           src={booking.profile.profile_picture_url}
                           alt={booking.profile.name || "User"}
-                          className="w-16 h-16 rounded-lg object-cover"
+                          className="w-12 h-12 rounded object-cover"
                         />
                       )}
-                      <span className="text-2xl font-semibold text-gray-100">
+                      <span className="text-lg font-semibold text-gray-100">
                         {getFirstName(booking.profile?.name)}
                       </span>
                     </div>
                   ) : (
-                    <span className="text-xl text-gray-400">Available</span>
+                    <span className="text-sm text-gray-400">Available</span>
                   )}
                 </div>
               </div>
@@ -220,7 +220,7 @@ export default function DisplayPage() {
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Header Bar */}
-      <div className="bg-gray-800 border-b-2 border-gray-700 p-6">
+      <div className="bg-gray-800 border-b-2 border-gray-700 py-3 px-6">
         <div className="max-w-full mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-100">
