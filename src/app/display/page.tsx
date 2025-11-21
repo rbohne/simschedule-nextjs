@@ -36,6 +36,8 @@ export default function DisplayPage() {
 
     console.log(`[Display] Loading bookings for ${simulator}:`, {
       date: startOfDay.toISOString(),
+      localTime: new Date().toISOString(),
+      mstTime: today.toISOString(),
     });
 
     try {
@@ -49,7 +51,7 @@ export default function DisplayPage() {
       }
 
       const data = await response.json();
-      console.log(`[Display] Loaded ${data?.length || 0} bookings for ${simulator}`);
+      console.log(`[Display] Loaded ${data?.length || 0} bookings for ${simulator}:`, data);
       return data || [];
     } catch (error) {
       console.error(`[Display] Error loading ${simulator} bookings:`, error);

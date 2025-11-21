@@ -33,6 +33,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  console.log(`[Display API] Found ${bookings?.length || 0} bookings for ${simulator} on ${date}`)
+
   // Fetch profiles for the bookings
   if (bookings && bookings.length > 0) {
     const userIds = [...new Set(bookings.map((b: any) => b.user_id))]
@@ -40,6 +42,8 @@ export async function GET(request: Request) {
       .from('profiles')
       .select('*')
       .in('id', userIds)
+
+    console.log(`[Display API] Fetched ${profiles?.length || 0} profiles for bookings`)
 
     // Attach profiles to bookings
     const bookingsWithProfiles = bookings.map((booking: any) => ({
@@ -50,5 +54,5 @@ export async function GET(request: Request) {
     return NextResponse.json(bookingsWithProfiles)
   }
 
-  return NextResponse.json(bookings)
+  return NextResponse.json(bookings || [])
 }
