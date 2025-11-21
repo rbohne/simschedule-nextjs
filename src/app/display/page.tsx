@@ -143,10 +143,22 @@ export default function DisplayPage() {
             const isFirstHourOfBooking =
               booking && new Date(booking.start_time).getTime() === timeSlot.getTime();
 
+            // Skip rendering the second hour of a booking since we'll show it as one card
+            if (isBooked && !isFirstHourOfBooking) {
+              return null;
+            }
+
+            // For bookings, show the full 2-hour span
+            const displayEndTime = isBooked
+              ? new Date(booking.end_time)
+              : slotEndTime;
+
             return (
               <div
                 key={timeSlot.getTime()}
-                className={`p-4 rounded-lg border-2 flex justify-between items-center ${
+                className={`rounded-lg border-2 flex justify-between items-center ${
+                  isBooked ? 'p-6' : 'p-4'
+                } ${
                   isPast
                     ? "bg-gray-900 border-gray-800 opacity-40"
                     : isCurrent
@@ -156,14 +168,14 @@ export default function DisplayPage() {
                     : "bg-gray-800 border-gray-600"
                 }`}
               >
-                <div className="text-xl font-bold text-gray-200">
+                <div className={`font-bold text-gray-200 ${isBooked ? 'text-2xl' : 'text-xl'}`}>
                   {timeSlot.toLocaleTimeString("en-US", {
                     hour: "numeric",
                     minute: "2-digit",
                     hour12: true,
                   })}{" "}
                   -{" "}
-                  {slotEndTime.toLocaleTimeString("en-US", {
+                  {displayEndTime.toLocaleTimeString("en-US", {
                     hour: "numeric",
                     minute: "2-digit",
                     hour12: true,
@@ -171,23 +183,19 @@ export default function DisplayPage() {
                 </div>
 
                 <div>
-                  {isBooked && isFirstHourOfBooking ? (
-                    <div className="flex items-center gap-3">
+                  {isBooked ? (
+                    <div className="flex items-center gap-4">
                       {booking.profile?.profile_picture_url && (
                         <img
                           src={booking.profile.profile_picture_url}
                           alt={booking.profile.name || "User"}
-                          className="w-10 h-10 rounded object-cover"
+                          className="w-16 h-16 rounded-lg object-cover"
                         />
                       )}
-                      <span className="text-xl font-semibold text-gray-100">
-                        {getFirstName(booking.profile?.name)} (2 hours)
+                      <span className="text-2xl font-semibold text-gray-100">
+                        {getFirstName(booking.profile?.name)}
                       </span>
                     </div>
-                  ) : isBooked ? (
-                    <span className="text-lg text-gray-400 italic">
-                      (hour 2 of booking)
-                    </span>
                   ) : (
                     <span className="text-xl text-gray-400">Available</span>
                   )}
