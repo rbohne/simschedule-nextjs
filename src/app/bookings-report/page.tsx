@@ -29,19 +29,21 @@ export default function BookingsReportPage() {
   const supabase = createClient();
 
   // Helper function to get auth headers for fetch requests
-  async function getAuthHeaders() {
+  async function getAuthHeaders(): Promise<Record<string, string>> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.access_token) {
-        return {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        };
+        headers['Authorization'] = `Bearer ${session.access_token}`;
       }
     } catch (e) {
       console.error('[Bookings Report] Failed to get session:', e);
     }
-    return { 'Content-Type': 'application/json' };
+
+    return headers;
   }
 
   useEffect(() => {
