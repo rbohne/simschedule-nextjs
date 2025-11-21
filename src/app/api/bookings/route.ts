@@ -108,16 +108,11 @@ export async function POST(request: Request) {
 
   // Check total booked bookings (1 booking limit for regular users, unlimited for admins)
   // Each booking is 2 hours
-  // Check booking limits for the user who will have the booking
-  const { data: targetUserProfile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', bookingUserId)
-    .single()
-
-  const isTargetUserAdmin = targetUserProfile?.role === 'admin'
-
-  if (!isTargetUserAdmin) {
+  // Skip booking limit check if:
+  // 1. The person making the booking is an admin (can book unlimited for anyone)
+  // 2. OR the target user is an admin (admins can have unlimited bookings)
+  if (!isAdmin) {
+    // Only check limits if a regular user is booking for themselves
     const now = new Date().toISOString()
     const { data: existingBookings, error: fetchError } = await supabase
       .from('bookings')
@@ -133,14 +128,13 @@ export async function POST(request: Request) {
     })
 
     if (existingBookings && existingBookings.length >= 1) {
-      const userName = targetUserId ? 'This user' : 'You'
       console.log('[Booking API] User has reached 1 booking limit')
       return NextResponse.json({
-        error: `${userName} already ha${targetUserId ? 's' : 've'} a booking (2 hours). Please cancel it first to book a different time.`
+        error: 'You already have a booking (2 hours). Please cancel it first to book a different time.'
       }, { status: 400 })
     }
   } else {
-    console.log('[Booking API] Target user is admin - skipping booking limit check')
+    console.log('[Booking API] Admin user - skipping booking limit check (can book unlimited for anyone)')
   }
 
   // Create booking - each booking is 2 hours
