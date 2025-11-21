@@ -13,6 +13,22 @@ export default function MembershipReportPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  // Helper function to get auth headers for fetch requests
+  async function getAuthHeaders() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        return {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        };
+      }
+    } catch (e) {
+      console.error('[Membership Report] Failed to get session:', e);
+    }
+    return { 'Content-Type': 'application/json' };
+  }
+
   useEffect(() => {
     let mounted = true;
     const authTimeout = setTimeout(() => {
@@ -70,7 +86,8 @@ export default function MembershipReportPage() {
   }
 
   async function loadUsers() {
-    const response = await fetch("/api/users");
+    const headers = await getAuthHeaders();
+    const response = await fetch("/api/users", { headers });
     if (response.ok) {
       const data: Profile[] = await response.json();
 

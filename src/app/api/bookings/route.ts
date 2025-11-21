@@ -36,7 +36,7 @@ export async function GET(request: Request) {
 
 // POST - Create a new booking
 export async function POST(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -184,7 +184,7 @@ export async function POST(request: Request) {
 
 // DELETE - Cancel a booking
 export async function DELETE(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()

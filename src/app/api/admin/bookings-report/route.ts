@@ -2,7 +2,7 @@ import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/sup
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Check if user is admin
   const { data: { user } } = await supabase.auth.getUser()

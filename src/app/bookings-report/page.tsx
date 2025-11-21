@@ -28,6 +28,22 @@ export default function BookingsReportPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  // Helper function to get auth headers for fetch requests
+  async function getAuthHeaders() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        return {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        };
+      }
+    } catch (e) {
+      console.error('[Bookings Report] Failed to get session:', e);
+    }
+    return { 'Content-Type': 'application/json' };
+  }
+
   useEffect(() => {
     let mounted = true;
     const authTimeout = setTimeout(() => {
@@ -91,8 +107,10 @@ export default function BookingsReportPage() {
 
   async function loadBookings() {
     setLoading(true);
+    const headers = await getAuthHeaders();
     const response = await fetch(
-      `/api/admin/bookings-report?startDate=${startDate}T00:00:00.000Z&endDate=${endDate}T23:59:59.999Z`
+      `/api/admin/bookings-report?startDate=${startDate}T00:00:00.000Z&endDate=${endDate}T23:59:59.999Z`,
+      { headers }
     );
 
     if (response.ok) {

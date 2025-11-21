@@ -2,8 +2,8 @@ import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/sup
 import { NextResponse } from 'next/server'
 
 // GET - Get all membership inquiries (admin only)
-export async function GET() {
-  const supabase = await createServerSupabaseClient()
+export async function GET(request: Request) {
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
@@ -39,7 +39,7 @@ export async function GET() {
 
 // PATCH - Update a membership inquiry (admin only)
 export async function PATCH(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
@@ -86,7 +86,7 @@ export async function PATCH(request: Request) {
 
 // DELETE - Delete a membership inquiry (admin only)
 export async function DELETE(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()

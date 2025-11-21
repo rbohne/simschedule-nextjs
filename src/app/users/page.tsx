@@ -41,6 +41,22 @@ export default function UsersPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  // Helper function to get auth headers for fetch requests
+  async function getAuthHeaders() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        return {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        };
+      }
+    } catch (e) {
+      console.error('[Users Page] Failed to get session:', e);
+    }
+    return { 'Content-Type': 'application/json' };
+  }
+
   useEffect(() => {
     let mounted = true;
     const authTimeout = setTimeout(() => {
@@ -100,11 +116,17 @@ export default function UsersPage() {
   }
 
   async function loadUsers() {
-    const response = await fetch("/api/users");
-    if (response.ok) {
-      const data = await response.json();
-      setUsers(data);
-    } else {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch("/api/users", { headers });
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      } else {
+        setError("Failed to load users");
+      }
+    } catch (err) {
+      console.error('[Users Page] Error loading users:', err);
       setError("Failed to load users");
     }
   }
@@ -139,9 +161,10 @@ export default function UsersPage() {
     setIsProcessing(true);
 
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch("/api/users", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(newUser),
       });
 
@@ -249,9 +272,10 @@ export default function UsersPage() {
         }
       }
 
+      const headers = await getAuthHeaders();
       const response = await fetch("/api/users", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           userId: editUser.id,
           email: editUser.email,
@@ -286,8 +310,10 @@ export default function UsersPage() {
     }
 
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(`/api/users?id=${userId}`, {
         method: "DELETE",
+        headers,
       });
 
       if (response.ok) {

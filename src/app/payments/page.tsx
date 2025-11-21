@@ -40,6 +40,22 @@ export default function PaymentsPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  // Helper function to get auth headers for fetch requests
+  async function getAuthHeaders() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        return {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        };
+      }
+    } catch (e) {
+      console.error('[Payments Page] Failed to get session:', e);
+    }
+    return { 'Content-Type': 'application/json' };
+  }
+
   useEffect(() => {
     let mounted = true;
     const authTimeout = setTimeout(() => {
@@ -97,7 +113,8 @@ export default function PaymentsPage() {
   }
 
   async function loadBalances() {
-    const response = await fetch("/api/transactions?action=balances");
+    const headers = await getAuthHeaders();
+    const response = await fetch("/api/transactions?action=balances", { headers });
     if (response.ok) {
       const data = await response.json();
       setUserBalances(data);
@@ -107,7 +124,8 @@ export default function PaymentsPage() {
   }
 
   async function loadTransactions(userId: string) {
-    const response = await fetch(`/api/transactions?userId=${userId}`);
+    const headers = await getAuthHeaders();
+    const response = await fetch(`/api/transactions?userId=${userId}`, { headers });
     if (response.ok) {
       const data = await response.json();
       setTransactions(data);
@@ -150,9 +168,10 @@ export default function PaymentsPage() {
         return;
       }
 
+      const headers = await getAuthHeaders();
       const response = await fetch("/api/transactions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           userId: selectedUser.id,
           type: "payment",
@@ -195,9 +214,10 @@ export default function PaymentsPage() {
       const currentBalance = selectedUser.balance;
       const adjustmentAmount = newBalance - currentBalance;
 
+      const headers = await getAuthHeaders();
       const response = await fetch("/api/transactions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           userId: selectedUser.id,
           type: "adjustment",

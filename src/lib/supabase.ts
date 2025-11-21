@@ -1,87 +1,77 @@
-import { createBrowserClient, type CookieOptions } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+// Hardcoded values - Next.js 16.0.1 with Turbopack isn't replacing process.env in browser
+const supabaseUrl = "https://uxtdsiqlzhzrwqyozuho.supabase.co";
+const supabaseAnonKey = "sb_publishable_gPV9pjTLd4XqgnmGxk7aTw_Ylne86n8";
+
+// Extend window to store the global singleton
+declare global {
+  interface Window {
+    __supabaseClient?: SupabaseClient;
+  }
+}
 
 export function createClient(useSessionStorage?: boolean) {
-  // Hardcoded values - Next.js 16.0.1 with Turbopack isn't replacing process.env in browser
-  const supabaseUrl = "https://uxtdsiqlzhzrwqyozuho.supabase.co";
-  const supabaseAnonKey = "sb_publishable_gPV9pjTLd4XqgnmGxk7aTw_Ylne86n8";
+  // Check for existing client on window object (true global singleton)
+  if (typeof window !== 'undefined' && window.__supabaseClient) {
+    // Only create a new instance if we're explicitly setting storage type during login
+    if (useSessionStorage !== undefined) {
+      // User is logging in with a specific storage preference
+      // Clear old singleton and create new one
+      window.__supabaseClient = undefined;
+    } else {
+      // Normal usage - return existing global client
+      return window.__supabaseClient;
+    }
+  }
 
   // Determine which storage to use based on Remember Me preference
-  // Auto-detect from both storages if not specified
   const getStorageToUse = () => {
     if (typeof window === 'undefined') return undefined;
 
     if (useSessionStorage === true) {
-      // "Remember Me" unchecked - use sessionStorage
+      // "Remember Me" unchecked - use sessionStorage (clears when browser closes)
       return window.sessionStorage;
     } else if (useSessionStorage === false) {
-      // "Remember Me" checked - use localStorage
+      // "Remember Me" checked - use localStorage (persists)
       return window.localStorage;
     } else {
-      // Auto-detect: try sessionStorage first, then localStorage
+      // Auto-detect: check sessionStorage first, then localStorage
       // This handles reading sessions regardless of where they were saved
-      const sessionToken = window.sessionStorage.getItem('supabase.auth.token');
-      if (sessionToken) {
-        return window.sessionStorage;
+      try {
+        const sessionKey = `sb-${supabaseUrl.split('//')[1].split('.')[0]}-auth-token`;
+        const sessionToken = window.sessionStorage.getItem(sessionKey);
+        if (sessionToken) {
+          return window.sessionStorage;
+        }
+        // Also check localStorage
+        const localToken = window.localStorage.getItem(sessionKey);
+        if (localToken) {
+          return window.localStorage;
+        }
+      } catch (e) {
+        // Ignore errors
       }
+      // Default to localStorage if no tokens found
       return window.localStorage;
     }
   };
 
-  return createBrowserClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get(name: string) {
-        if (typeof document === 'undefined') return undefined;
-
-        const cookies = document.cookie.split(';');
-        for (const cookie of cookies) {
-          const [key, value] = cookie.trim().split('=');
-          if (key === name) {
-            return decodeURIComponent(value);
-          }
-        }
-        return undefined;
-      },
-      set(name: string, value: string, options: CookieOptions) {
-        if (typeof document === 'undefined') return;
-
-        let cookie = `${name}=${encodeURIComponent(value)}`;
-
-        if (options.maxAge) {
-          cookie += `; max-age=${options.maxAge}`;
-        }
-        if (options.path) {
-          cookie += `; path=${options.path}`;
-        }
-        if (options.domain) {
-          cookie += `; domain=${options.domain}`;
-        }
-        if (options.sameSite) {
-          cookie += `; samesite=${options.sameSite}`;
-        }
-        if (options.secure) {
-          cookie += '; secure';
-        }
-
-        document.cookie = cookie;
-      },
-      remove(name: string, options: CookieOptions) {
-        if (typeof document === 'undefined') return;
-
-        let cookie = `${name}=; max-age=0`;
-        if (options.path) {
-          cookie += `; path=${options.path}`;
-        }
-        if (options.domain) {
-          cookie += `; domain=${options.domain}`;
-        }
-
-        document.cookie = cookie;
-      },
-    },
+  // Create a new client
+  const client = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
     auth: {
+      storage: getStorageToUse(),
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
     }
   });
+
+  // Store as global singleton on window
+  if (typeof window !== 'undefined') {
+    window.__supabaseClient = client;
+  }
+
+  return client;
 }

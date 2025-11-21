@@ -55,6 +55,25 @@ export default function Home() {
   const router = useRouter();
   const supabase = createClient();
 
+  // Helper function to get auth headers for fetch requests
+  async function getAuthHeaders() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        console.log('[Auth] Including auth token in headers');
+        return {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        };
+      } else {
+        console.warn('[Auth] No session found, cannot add auth headers');
+      }
+    } catch (e) {
+      console.error('[Auth] Failed to get session:', e);
+    }
+    return { 'Content-Type': 'application/json' };
+  }
+
   async function loadUserProfile(userId: string) {
     const { data } = await supabase
       .from("profiles")
@@ -85,7 +104,10 @@ export default function Home() {
 
   async function loadUserBalance(userId: string) {
     try {
-      const response = await fetch(`/api/transactions?userId=${userId}`);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`/api/transactions?userId=${userId}`, {
+        headers
+      });
       if (response.ok) {
         const transactions = await response.json();
 
@@ -107,7 +129,10 @@ export default function Home() {
 
   async function loadAllUsers() {
     try {
-      const response = await fetch('/api/users');
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/users', {
+        headers
+      });
       if (response.ok) {
         const users = await response.json();
         setAllUsers(users);
@@ -400,9 +425,10 @@ export default function Home() {
       bookingData.targetUserId = selectedUserId;
     }
 
+    const headers = await getAuthHeaders();
     const response = await fetch("/api/bookings", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(bookingData),
     });
 
@@ -427,8 +453,10 @@ export default function Home() {
     setError(null);
     setSuccess(null);
 
+    const headers = await getAuthHeaders();
     const response = await fetch(`/api/bookings?id=${bookingId}`, {
       method: "DELETE",
+      headers,
     });
 
     if (response.ok) {
@@ -443,9 +471,10 @@ export default function Home() {
     setAddingGuestFee(bookingId);
 
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch("/api/transactions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           userId,
           bookingId,

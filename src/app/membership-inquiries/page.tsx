@@ -33,6 +33,22 @@ export default function MembershipInquiriesPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  // Helper function to get auth headers for fetch requests
+  async function getAuthHeaders() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        return {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        };
+      }
+    } catch (e) {
+      console.error('[Membership Inquiries] Failed to get session:', e);
+    }
+    return { 'Content-Type': 'application/json' };
+  }
+
   // Counts
   const totalCount = inquiries.length;
   const unreadCount = inquiries.filter((i) => !i.is_read).length;
@@ -95,7 +111,8 @@ export default function MembershipInquiriesPage() {
   }
 
   async function loadInquiries() {
-    const response = await fetch("/api/admin/membership-inquiries");
+    const headers = await getAuthHeaders();
+    const response = await fetch("/api/admin/membership-inquiries", { headers });
     if (response.ok) {
       const data = await response.json();
       setInquiries(data);
@@ -132,9 +149,10 @@ export default function MembershipInquiriesPage() {
 
     // Auto-mark as read when viewing
     if (!inquiry.is_read) {
+      const headers = await getAuthHeaders();
       await fetch("/api/admin/membership-inquiries", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           id: inquiryId,
           admin_notes: inquiry.admin_notes,
@@ -151,9 +169,10 @@ export default function MembershipInquiriesPage() {
   async function saveInquiryDetails() {
     if (!selectedInquiry) return;
 
+    const headers = await getAuthHeaders();
     const response = await fetch("/api/admin/membership-inquiries", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         id: selectedInquiry.id,
         admin_notes: adminNotes,
@@ -173,8 +192,10 @@ export default function MembershipInquiriesPage() {
       return;
     }
 
+    const headers = await getAuthHeaders();
     const response = await fetch(`/api/admin/membership-inquiries?id=${inquiryId}`, {
       method: "DELETE",
+      headers,
     });
 
     if (response.ok) {

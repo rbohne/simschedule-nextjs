@@ -2,12 +2,17 @@ import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/sup
 import { NextResponse } from 'next/server'
 
 // GET - Get all users (admin only)
-export async function GET() {
-  const supabase = await createServerSupabaseClient()
+export async function GET(request: Request) {
+  console.log('[API/Users] GET request received')
+  console.log('[API/Users] Authorization header:', request.headers.get('authorization') ? 'Present' : 'Missing')
+  console.log('[API/Users] All headers:', Array.from(request.headers.entries()).map(([k,v]) => `${k}: ${v.substring(0, 50)}`))
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
+  console.log('[API/Users] User from getUser():', user ? user.id : 'None')
   if (!user) {
+    console.log('[API/Users] No user - returning 401')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -37,7 +42,7 @@ export async function GET() {
 
 // POST - Create a new user (admin only)
 export async function POST(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
@@ -100,7 +105,7 @@ export async function POST(request: Request) {
 
 // PUT - Update a user (admin only)
 export async function PUT(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
@@ -177,7 +182,7 @@ export async function PUT(request: Request) {
 
 // DELETE - Delete a user (admin only)
 export async function DELETE(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()

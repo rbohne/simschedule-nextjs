@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 
 // GET - Get all transactions or user balance
 export async function GET(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
@@ -96,7 +96,7 @@ export async function GET(request: Request) {
 
 // POST - Add a guest fee or payment
 export async function POST(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
@@ -155,7 +155,7 @@ export async function POST(request: Request) {
 
 // DELETE - Remove a transaction (guest fee)
 export async function DELETE(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
