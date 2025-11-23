@@ -5,7 +5,7 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 
 ## Technology Stack
 - **Framework**: Next.js 16.0.1 with Turbopack
-- **Authentication**: Supabase Auth
+- **Authentication**: Supabase Auth with `@supabase/supabase-js` (client-only architecture)
 - **Database**: Supabase (PostgreSQL)
 - **Storage**: Supabase Storage (for profile pictures)
 - **Hosting**: Vercel (golfthecave.ca)
@@ -51,11 +51,14 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 
 ### 2. Authentication
 - Email/password login via Supabase
+- **Client-Only Architecture**: Uses `@supabase/supabase-js` with window-based singleton pattern
+- **Authorization Headers**: All API calls include JWT token via `Authorization: Bearer <token>` headers
 - "Remember Me" checkbox (checked by default)
   - Checked: Session persists across browser restarts (localStorage)
   - Unchecked: Session clears when browser closes (sessionStorage)
 - 10-second timeout protection on auth checks (prevents hanging)
-- Automatic session refresh
+- **Server-Side Auth**: API routes read JWT from Authorization header and validate with Supabase
+- Automatic session refresh on client side
 
 ### 3. Guest Fee Tracking System
 **For Admins:**
@@ -290,22 +293,25 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 
 ## API Endpoints
 
+**Authentication Pattern**: All protected API routes accept `request: Request` parameter and read JWT token from `Authorization` header for user authentication.
+
 ### `/api/bookings`
 - **GET**: Fetch bookings for specific simulator and date
-- **POST**: Create new booking
-- **DELETE**: Cancel booking (admin can cancel any, users only their own)
+- **POST**: Create new booking (requires Authorization header)
+- **DELETE**: Cancel booking (admin can cancel any, users only their own, requires Authorization header)
 
 ### `/api/users`
-- **GET**: Fetch all users (admin only)
-- **POST**: Create new user (admin only)
-- **PUT**: Update user details including profile picture (admin only)
-- **DELETE**: Delete user (admin only, cannot delete self)
+- **GET**: Fetch all users (admin only, requires Authorization header)
+- **POST**: Create new user (admin only, requires Authorization header)
+- **PUT**: Update user details including profile picture (admin only, requires Authorization header)
+- **DELETE**: Delete user (admin only, cannot delete self, requires Authorization header)
 
 ### `/api/transactions`
-- **GET**:
+- **GET**: (requires Authorization header)
   - `?action=balances` - Get all users with outstanding balances (admin only)
   - `?userId={id}` - Get transaction history for user (admin or user viewing own)
-- **POST**: Add guest fee, payment, or adjustment (admin only)
+- **POST**: Add guest fee, payment, or adjustment (admin only, requires Authorization header)
+- **DELETE**: Remove transaction (admin or user for own guest fees, requires Authorization header)
 
 ### `/api/tournament-messages`
 - **GET**: Fetch all messages (public)
@@ -319,12 +325,12 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
   - No foreign key constraints (allows public submission)
 
 ### `/api/admin/membership-inquiries`
-- **GET**: Fetch all inquiries (admin only)
-- **PATCH**: Update inquiry status (admin only)
-- **DELETE**: Delete inquiry (admin only)
+- **GET**: Fetch all inquiries (admin only, requires Authorization header)
+- **PATCH**: Update inquiry status (admin only, requires Authorization header)
+- **DELETE**: Delete inquiry (admin only, requires Authorization header)
 
 ### `/api/admin/bookings-report`
-- **GET**: Fetch bookings within date range (admin only)
+- **GET**: Fetch bookings within date range (admin only, requires Authorization header)
   - Query params: `startDate`, `endDate`
   - Returns bookings with associated user profiles
 
@@ -336,6 +342,19 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 - Admins have full access via admin client
 - Storage buckets have appropriate access policies
 
+### Authentication Architecture
+- **Client-Side**:
+  - Uses `@supabase/supabase-js` for auth and session management
+  - Window-based singleton pattern ensures single Supabase instance
+  - `getAuthHeaders()` helper function retrieves JWT from session
+  - All fetch calls include `Authorization: Bearer <token>` header
+- **Server-Side**:
+  - API routes accept `request: Request` parameter
+  - `createServerSupabaseClient(request)` reads Authorization header
+  - Extracts JWT token and validates with Supabase
+  - Creates authenticated Supabase client for database operations
+- **Token Flow**: Client → Authorization Header → Server → Supabase Validation
+
 ### Authentication Timeouts
 - 10-second timeout on all auth checks
 - Prevents infinite "Loading..." screens
@@ -344,14 +363,27 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 
 ### Admin Client Usage
 - Server-side admin operations use `createAdminSupabaseClient()`
-- Bypasses RLS for admin operations
+- Uses service role key to bypass RLS for admin operations
 - Used for:
   - User management (create, update, delete)
   - Deleting any booking
   - Transaction management
   - Viewing all user data
+  - Admin booking on behalf of other users
 
 ## Recent Improvements
+
+### Authentication Architecture Migration (November 2025)
+- **Migrated from `@supabase/ssr` to `@supabase/supabase-js`**:
+  - Resolved session timeout and 401 Unauthorized errors
+  - Implemented client-only architecture with JWT token passing
+  - Added `getAuthHeaders()` helper to all client pages
+  - Updated all API routes to accept and validate Authorization headers
+  - Fixed TypeScript type errors in header object construction
+- **Files Modified**:
+  - Client pages: users, payments, membership-report, bookings-report, membership-inquiries, main booking page
+  - API routes: /api/users, /api/bookings, /api/transactions, /api/admin/*
+  - Library files: supabase.ts, supabase-server.ts, middleware.ts
 
 ### Performance
 - Fixed authentication hanging issues across all pages
@@ -441,6 +473,6 @@ pnpm run dev
 
 ---
 
-**Last Updated**: November 16, 2025
-**Version**: 1.1
+**Last Updated**: November 22, 2025
+**Version**: 1.2
 **Maintained by**: Claude Code
