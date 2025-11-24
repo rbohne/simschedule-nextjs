@@ -86,13 +86,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: createError.message }, { status: 500 })
   }
 
+  // Calculate active_until date (1 year from today)
+  const activeUntil = new Date()
+  activeUntil.setFullYear(activeUntil.getFullYear() + 1)
+
   // Update profile with additional info using admin client
   const { error: profileError } = await adminClient
     .from('profiles')
     .update({
       name,
       phone,
-      role: role || 'user'
+      role: role || 'user',
+      active_until: activeUntil.toISOString()
     })
     .eq('id', newUser.user.id)
 
