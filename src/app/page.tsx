@@ -92,8 +92,11 @@ export default function Home() {
       .eq("id", userId)
       .single();
 
+    console.log('[Home] User profile loaded:', data);
+
     if (data) {
       setUserProfile(data);
+      console.log('[Home] User role:', data.role, 'isAdmin:', data.role === 'admin');
       // Load all users if admin
       if (data.role === 'admin') {
         loadAllUsers();
