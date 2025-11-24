@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 
 interface User {
@@ -17,7 +17,13 @@ export default function Navbar() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = createClient()
+
+  // Hide navbar on display page
+  if (pathname === '/display') {
+    return null
+  }
 
   useEffect(() => {
     // Get initial user
