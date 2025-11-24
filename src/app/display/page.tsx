@@ -222,18 +222,26 @@ export default function DisplayPage() {
       {/* Header Bar */}
       <div className="bg-gray-800 border-b-2 border-gray-700 py-3 px-6">
         <div className="max-w-full mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-100">
-              The Cave Golf - Live Bookings
-            </h1>
-            <p className="text-gray-400 mt-1">
-              {currentTime.toLocaleDateString("en-US", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
+          <div className="flex items-center gap-4">
+            {/* Logo */}
+            <img
+              src="/images/TheCave_Nav_LOGO_Large.png"
+              alt="The Cave Golf Logo"
+              className="h-16 w-auto"
+            />
+            <div>
+              <h1 className="text-3xl font-bold text-gray-100">
+                The Cave Golf - Live Bookings
+              </h1>
+              <p className="text-gray-400 mt-1">
+                {currentTime.toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+            </div>
           </div>
           <div className="text-right">
             <div className="text-4xl font-bold text-gray-100">
