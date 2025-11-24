@@ -58,7 +58,11 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
   - Unchecked: Session clears when browser closes (sessionStorage)
 - 10-second timeout protection on auth checks (prevents hanging)
 - **Server-Side Auth**: API routes read JWT from Authorization header and validate with Supabase
-- Automatic session refresh on client side
+- **Automatic Session Refresh**:
+  - All API calls automatically refresh expired tokens before making requests
+  - Users can leave pages idle for extended periods (30+ minutes) without logout
+  - Graceful fallback to existing session if refresh fails
+  - Background token refresh via `autoRefreshToken: true`
 
 ### 3. Guest Fee Tracking System
 **For Admins:**
@@ -381,6 +385,7 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
   - Added `getAuthHeaders()` helper to all client pages
   - Updated all API routes to accept and validate Authorization headers
   - Fixed TypeScript type errors in header object construction
+  - **Added automatic token refresh**: Calls `refreshSession()` before API requests to prevent premature logout
 - **Files Modified**:
   - Client pages: users, payments, membership-report, bookings-report, membership-inquiries, main booking page
   - API routes: /api/users, /api/bookings, /api/transactions, /api/admin/*
