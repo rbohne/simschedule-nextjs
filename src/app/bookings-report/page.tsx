@@ -35,8 +35,17 @@ export default function BookingsReportPage() {
     };
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
+      // First, try to refresh the session to ensure it's valid
+      const { data: { session }, error } = await supabase.auth.refreshSession();
+
+      if (error) {
+        console.warn('[Bookings Report] Session refresh failed, trying to get existing session:', error.message);
+        // If refresh fails, try to get the existing session
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        if (existingSession?.access_token) {
+          headers['Authorization'] = `Bearer ${existingSession.access_token}`;
+        }
+      } else if (session?.access_token) {
         headers['Authorization'] = `Bearer ${session.access_token}`;
       }
     } catch (e) {
