@@ -5,6 +5,14 @@ import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import type { Booking } from "@/types/database";
 
+// MST is UTC-7
+const MST_OFFSET = -7;
+
+function convertToMST(date: Date): Date {
+  const utc = date.getTime() + date.getTimezoneOffset() * 60000;
+  return new Date(utc + 3600000 * MST_OFFSET);
+}
+
 // Admin bookings report page
 export default function BookingsReportPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -110,8 +118,20 @@ export default function BookingsReportPage() {
   async function loadBookings() {
     setLoading(true);
     const headers = await getAuthHeaders();
+
+    // Convert the selected dates to MST and then to UTC for the query
+    // startDate is like "2025-11-25" which the browser interprets as local midnight
+    const startDateObj = new Date(startDate + 'T00:00:00'); // Local midnight
+    const endDateObj = new Date(endDate + 'T23:59:59'); // Local end of day
+
+    // Convert to MST time (the dates are already in MST from user's perspective)
+    // We need to get UTC timestamps that represent MST midnight and end-of-day
+    const mstOffset = MST_OFFSET * 60; // -420 minutes
+    const startUTC = new Date(startDateObj.getTime() - (mstOffset * 60000));
+    const endUTC = new Date(endDateObj.getTime() - (mstOffset * 60000));
+
     const response = await fetch(
-      `/api/admin/bookings-report?startDate=${startDate}T00:00:00.000Z&endDate=${endDate}T23:59:59.999Z`,
+      `/api/admin/bookings-report?startDate=${startUTC.toISOString()}&endDate=${endUTC.toISOString()}`,
       { headers }
     );
 
