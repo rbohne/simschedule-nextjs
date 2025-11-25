@@ -106,6 +106,8 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 - Create new users (name, email, phone, password, role)
   - **Automatic Membership**: New users automatically get 'Active Until' date set to exactly 1 year from creation date
 - Edit existing users (all fields including Active Until date)
+- **Reset user passwords**: Admins can change passwords for any existing user
+  - Password field in Edit User modal (optional - leave blank to keep current password)
 - Upload/manage high-quality profile pictures (max 10MB)
 - Delete users (except yourself)
 - View profile pictures (square format with click-to-zoom)
@@ -428,6 +430,7 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 16. Guest fee details modal with itemized transaction breakdown
 17. Automatic 1-year membership on user creation (auto-sets Active Until date)
 18. Display page: Added logo next to title, removed navbar completely
+19. Admin password reset: Admins can change passwords for existing users via Edit User modal
 
 ## Configuration
 
