@@ -1,6 +1,7 @@
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 import type { Simulator } from '@/types/database'
+import { sendBookingConfirmation } from '@/lib/email'
 
 // GET - Get bookings for a specific day and simulator
 export async function GET(request: Request) {
@@ -182,6 +183,28 @@ export async function POST(request: Request) {
   }
 
   console.log('[Booking API] Booking created successfully:', data)
+
+  // Get user details for email
+  const { data: userProfile } = await supabase
+    .from('profiles')
+    .select('name, email')
+    .eq('id', bookingUserId)
+    .single()
+
+  // Send confirmation email (don't await - let it happen in background)
+  if (userProfile?.email) {
+    sendBookingConfirmation({
+      userEmail: userProfile.email,
+      userName: userProfile.name || 'User',
+      simulator,
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+    }).catch((err) => {
+      console.error('[Booking API] Failed to send email:', err)
+      // Don't fail the booking if email fails
+    })
+  }
+
   return NextResponse.json(data)
 }
 
