@@ -1095,13 +1095,6 @@ export default function Home() {
             {/* Time Slots */}
             <div className="space-y-2">
               {timeSlots.map((timeSlot) => {
-                const slotEndTime = new Date(timeSlot);
-                slotEndTime.setHours(slotEndTime.getHours() + 1);
-
-                // Only hide past slots for non-admin users
-                const isPastSlot = isToday && slotEndTime <= mstNow;
-                if (isPastSlot && userProfile?.role !== "admin") return null;
-
                 // Check if this time slot falls within any booking (bookings are 2 hours long)
                 const booking = bookings.find((b) => {
                   const bookingStart = new Date(b.start_time).getTime();
@@ -1110,6 +1103,22 @@ export default function Home() {
                   return slotTime >= bookingStart && slotTime < bookingEnd;
                 });
                 const isBooked = !!booking;
+                const isFirstHourOfBooking = booking && new Date(booking.start_time).getTime() === timeSlot.getTime();
+
+                // Skip rendering the second hour of a booking since we'll show it as one merged card
+                if (isBooked && !isFirstHourOfBooking) {
+                  return null;
+                }
+
+                // For bookings, show the full 2-hour span; for available slots, show 1 hour
+                const slotEndTime = isBooked
+                  ? new Date(booking.end_time)
+                  : new Date(new Date(timeSlot).setHours(timeSlot.getHours() + 1));
+
+                // Only hide past slots for non-admin users
+                const isPastSlot = isToday && slotEndTime <= mstNow;
+                if (isPastSlot && userProfile?.role !== "admin") return null;
+
                 const isUserBooking =
                   isBooked && user && booking.user_id === user.id;
                 // Check if this slot is selected (either as the start hour or the second hour of a 2-hour selection)
@@ -1118,8 +1127,6 @@ export default function Home() {
                   const nextHourTime = new Date(s).setHours(s.getHours() + 1);
                   return timeSlot.getTime() === selectedTime || timeSlot.getTime() === nextHourTime;
                 });
-                // Show which hour of the 2-hour booking this is
-                const isFirstHourOfBooking = booking && new Date(booking.start_time).getTime() === timeSlot.getTime();
 
                 return (
                   <div
@@ -1156,55 +1163,46 @@ export default function Home() {
                         <>
                           {isUserBooking ? (
                             <>
-                              {isFirstHourOfBooking ? (
-                                <>
-                                  {/* Only show action buttons on the first hour of the 2-hour booking */}
-                                  {booking.guest_transactions && booking.guest_transactions.length > 0 && (
-                                    <div className="flex gap-1">
-                                      {booking.guest_transactions.map((transaction) => (
-                                        <button
-                                          key={transaction.id}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            removeGuestFee(transaction.id, booking.user_id);
-                                          }}
-                                          className="text-2xl hover:opacity-60 transition-opacity"
-                                          style={{ filter: 'grayscale(100%) brightness(2.5)' }}
-                                          title="Click to remove this guest ($20)"
-                                        >
-                                          👤
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
-                                  <span className="px-3 py-1 bg-green-800 text-gray-100 rounded text-sm border border-green-700">
-                                    Your Booking (2 hours)
-                                  </span>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      addGuestFee(booking.id, booking.user_id);
-                                    }}
-                                    disabled={addingGuestFee === booking.id}
-                                    className="bg-purple-800 hover:bg-purple-700 text-gray-100 px-3 py-1 rounded text-sm disabled:opacity-50"
-                                  >
-                                    {addingGuestFee === booking.id ? "Adding..." : "Guest +$20"}
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      cancelBooking(booking.id);
-                                    }}
-                                    className="bg-red-800 hover:bg-red-700 text-gray-100 px-3 py-1 rounded text-sm"
-                                  >
-                                    Cancel
-                                  </button>
-                                </>
-                              ) : (
-                                <span className="px-3 py-1 bg-green-800 text-gray-100 rounded text-sm border border-green-700">
-                                  Your Booking (hour 2)
-                                </span>
+                              {booking.guest_transactions && booking.guest_transactions.length > 0 && (
+                                <div className="flex gap-1">
+                                  {booking.guest_transactions.map((transaction) => (
+                                    <button
+                                      key={transaction.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        removeGuestFee(transaction.id, booking.user_id);
+                                      }}
+                                      className="text-2xl hover:opacity-60 transition-opacity"
+                                      style={{ filter: 'grayscale(100%) brightness(2.5)' }}
+                                      title="Click to remove this guest ($20)"
+                                    >
+                                      👤
+                                    </button>
+                                  ))}
+                                </div>
                               )}
+                              <span className="px-3 py-1 bg-green-800 text-gray-100 rounded text-sm border border-green-700">
+                                Your Booking (2 hours)
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addGuestFee(booking.id, booking.user_id);
+                                }}
+                                disabled={addingGuestFee === booking.id}
+                                className="bg-purple-800 hover:bg-purple-700 text-gray-100 px-3 py-1 rounded text-sm disabled:opacity-50"
+                              >
+                                {addingGuestFee === booking.id ? "Adding..." : "Guest +$20"}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cancelBooking(booking.id);
+                                }}
+                                className="bg-red-800 hover:bg-red-700 text-gray-100 px-3 py-1 rounded text-sm"
+                              >
+                                Cancel
+                              </button>
                             </>
                           ) : userProfile?.role === "admin" ? (
                             <>
