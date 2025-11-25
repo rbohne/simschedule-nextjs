@@ -1132,7 +1132,9 @@ export default function Home() {
                   <div
                     key={timeSlot.getTime()}
                     onClick={() => !isBooked && !isPastSlot && toggleSlotSelection(timeSlot)}
-                    className={`p-4 rounded-lg border-2 transition-all flex justify-between items-center ${
+                    className={`rounded-lg border-2 transition-all flex justify-between items-center ${
+                      isBooked ? 'p-6' : 'p-4'
+                    } ${
                       isPastSlot
                         ? "bg-gray-800 border-gray-700 opacity-50 text-gray-500"
                         : isUserBooking
@@ -1144,7 +1146,7 @@ export default function Home() {
                         : "bg-gray-800 border-gray-600 hover:border-green-700 cursor-pointer text-gray-200"
                     }`}
                   >
-                    <div className="font-bold text-lg">
+                    <div className={`font-bold ${isBooked ? 'text-xl' : 'text-lg'}`}>
                       {timeSlot.toLocaleTimeString("en-US", {
                         hour: "numeric",
                         minute: "2-digit",
