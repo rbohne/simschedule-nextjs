@@ -1133,7 +1133,7 @@ export default function Home() {
                     key={timeSlot.getTime()}
                     onClick={() => !isBooked && !isPastSlot && toggleSlotSelection(timeSlot)}
                     className={`rounded-lg border-2 transition-all flex justify-between items-center ${
-                      isBooked ? 'p-6' : 'p-4'
+                      isBooked ? 'py-8 px-6' : 'p-4'
                     } ${
                       isPastSlot
                         ? "bg-gray-800 border-gray-700 opacity-50 text-gray-500"
@@ -1230,7 +1230,7 @@ export default function Home() {
                                 <img
                                   src={(booking.profile as Profile).profile_picture_url || ''}
                                   alt={(booking.profile as Profile)?.name || 'User'}
-                                  className="w-10 h-10 rounded object-cover cursor-pointer hover:opacity-80 transition-opacity border-2 border-gray-600"
+                                  className="w-16 h-16 rounded object-cover cursor-pointer hover:opacity-80 transition-opacity border-2 border-gray-600"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setSelectedImageUrl((booking.profile as Profile)?.profile_picture_url || null);
