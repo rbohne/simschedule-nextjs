@@ -241,8 +241,11 @@ export default function Home() {
 
     const startOfDay = new Date(selectedDate);
     startOfDay.setHours(0, 0, 0, 0);
+
+    // Include bookings from today 00:00 through tomorrow 02:00 (for midnight-2am slots)
     const endOfDay = new Date(selectedDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    endOfDay.setDate(endOfDay.getDate() + 1); // Move to next day
+    endOfDay.setHours(2, 0, 0, 0); // 2:00 AM next day
 
     const { data } = await supabase
       .from("bookings")
