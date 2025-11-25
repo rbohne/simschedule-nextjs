@@ -1183,6 +1183,18 @@ export default function Home() {
                                   ))}
                                 </div>
                               )}
+                              {(booking.profile as Profile)?.profile_picture_url && (
+                                <img
+                                  src={(booking.profile as Profile).profile_picture_url || ''}
+                                  alt={(booking.profile as Profile)?.name || 'User'}
+                                  className="w-16 h-16 rounded object-cover cursor-pointer hover:opacity-80 transition-opacity border-2 border-green-600"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedImageUrl((booking.profile as Profile)?.profile_picture_url || null);
+                                    setShowImageModal(true);
+                                  }}
+                                />
+                              )}
                               <span className="px-3 py-1 bg-green-800 text-gray-100 rounded text-sm border border-green-700">
                                 Your Booking (2 hours)
                               </span>
