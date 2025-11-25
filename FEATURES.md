@@ -56,13 +56,14 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 - "Remember Me" checkbox (checked by default)
   - Checked: Session persists across browser restarts (localStorage)
   - Unchecked: Session clears when browser closes (sessionStorage)
-- 10-second timeout protection on auth checks (prevents hanging)
+- **30-second timeout protection** on auth checks (prevents hanging, allows slow API responses)
 - **Server-Side Auth**: API routes read JWT from Authorization header and validate with Supabase
-- **Automatic Session Refresh**:
-  - All API calls automatically refresh expired tokens before making requests
-  - Users can leave pages idle for extended periods (30+ minutes) without logout
-  - Graceful fallback to existing session if refresh fails
+- **Session Management**:
+  - JWT expiry: 3600 seconds (1 hour) configured in Supabase dashboard
   - Background token refresh via `autoRefreshToken: true`
+  - Users can remain idle for extended periods (tested 9+ minutes) without logout
+  - Uses `getSession()` to read from storage (avoids rate limiting from API calls)
+  - No manual `refreshSession()` calls (prevents production rate limiting issues)
 
 ### 3. Guest Fee Tracking System
 **For Admins:**
@@ -385,11 +386,15 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
   - Added `getAuthHeaders()` helper to all client pages
   - Updated all API routes to accept and validate Authorization headers
   - Fixed TypeScript type errors in header object construction
-  - **Added automatic token refresh**: Calls `refreshSession()` before API requests to prevent premature logout
+  - ~~Added automatic token refresh with `refreshSession()`~~ **REVERTED** - caused rate limiting in production
+  - Uses `getSession()` to read tokens from storage without API calls
+  - Increased auth timeout from 10s to 30s to accommodate slow Supabase API responses
+  - Verified JWT expiry set to 3600s (1 hour) in Supabase dashboard
 - **Files Modified**:
   - Client pages: users, payments, membership-report, bookings-report, membership-inquiries, main booking page
   - API routes: /api/users, /api/bookings, /api/transactions, /api/admin/*
   - Library files: supabase.ts, supabase-server.ts, middleware.ts
+  - Display page: Added logo, removed navbar via pathname check
 
 ### Performance
 - Fixed authentication hanging issues across all pages
@@ -422,6 +427,7 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 15. Membership inquiry system for non-members on login page
 16. Guest fee details modal with itemized transaction breakdown
 17. Automatic 1-year membership on user creation (auto-sets Active Until date)
+18. Display page: Added logo next to title, removed navbar completely
 
 ## Configuration
 
