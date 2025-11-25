@@ -168,7 +168,7 @@ export default function Home() {
         }
         router.push("/login");
       }
-    }, 30000); // 30 second timeout
+    }, 10000); // 10 second timeout
 
     supabase.auth.getUser()
       .then(({ data: { user }, error }) => {

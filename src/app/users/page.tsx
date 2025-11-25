@@ -64,10 +64,10 @@ export default function UsersPage() {
     let mounted = true;
     const authTimeout = setTimeout(() => {
       if (mounted && loading) {
-        console.error('Auth check timed out after 30 seconds, redirecting to login');
+        console.error('Auth check timed out after 10 seconds, redirecting to login');
         router.push("/login");
       }
-    }, 30000);
+    }, 10000);
 
     checkAuth(mounted, authTimeout);
 
