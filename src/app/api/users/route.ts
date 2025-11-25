@@ -130,7 +130,7 @@ export async function PUT(request: Request) {
   }
 
   const body = await request.json()
-  const { userId, email, name, phone, role, profile_picture_url, active_until } = body
+  const { userId, email, name, phone, role, profile_picture_url, active_until, password } = body
 
   if (!userId || !email || !name || !phone) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -139,16 +139,24 @@ export async function PUT(request: Request) {
   // Create admin client for user update
   const adminClient = createAdminSupabaseClient()
 
-  // Update user email in Supabase Auth if changed
+  // Build update object for auth
+  const authUpdate: any = {
+    email,
+    user_metadata: {
+      name,
+      phone
+    }
+  }
+
+  // Include password if provided
+  if (password && password.trim().length > 0) {
+    authUpdate.password = password
+  }
+
+  // Update user in Supabase Auth
   const { error: updateAuthError } = await adminClient.auth.admin.updateUserById(
     userId,
-    {
-      email,
-      user_metadata: {
-        name,
-        phone
-      }
-    }
+    authUpdate
   )
 
   if (updateAuthError) {

@@ -33,6 +33,7 @@ export default function UsersPage() {
   });
 
   const [editUser, setEditUser] = useState<Profile | null>(null);
+  const [newPassword, setNewPassword] = useState<string>("");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
@@ -197,6 +198,7 @@ export default function UsersPage() {
   function closeEditModal() {
     setShowEditModal(false);
     setEditUser(null);
+    setNewPassword("");
     setSelectedFile(null);
     setError(null);
   }
@@ -275,18 +277,25 @@ export default function UsersPage() {
       }
 
       const headers = await getAuthHeaders();
+      const requestBody: any = {
+        userId: editUser.id,
+        email: editUser.email,
+        name: editUser.name,
+        phone: editUser.phone,
+        role: editUser.role,
+        profile_picture_url: profilePictureUrl,
+        active_until: editUser.active_until,
+      };
+
+      // Only include password if it's been set
+      if (newPassword && newPassword.trim().length > 0) {
+        requestBody.password = newPassword;
+      }
+
       const response = await fetch("/api/users", {
         method: "PUT",
         headers,
-        body: JSON.stringify({
-          userId: editUser.id,
-          email: editUser.email,
-          name: editUser.name,
-          phone: editUser.phone,
-          role: editUser.role,
-          profile_picture_url: profilePictureUrl,
-          active_until: editUser.active_until,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
@@ -702,6 +711,22 @@ export default function UsersPage() {
                 />
                 <p className="text-xs text-gray-400 mt-1">
                   Upload a new profile picture (JPG, PNG, GIF)
+                </p>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2 text-gray-300">
+                  New Password (optional)
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Leave blank to keep current password"
+                  className="w-full bg-gray-700 border border-gray-600 text-gray-100 rounded px-3 py-2"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Enter a new password to reset this user's password
                 </p>
               </div>
 
