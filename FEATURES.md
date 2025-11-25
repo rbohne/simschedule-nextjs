@@ -390,7 +390,7 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
   - Fixed TypeScript type errors in header object construction
   - ~~Added automatic token refresh with `refreshSession()`~~ **REVERTED** - caused rate limiting in production
   - Uses `getSession()` to read tokens from storage without API calls
-  - Increased auth timeout from 10s to 30s to accommodate slow Supabase API responses
+  - Auth timeout: 10 seconds (reverted from 30s - if auth doesn't work in 10s, it won't work)
   - Verified JWT expiry set to 3600s (1 hour) in Supabase dashboard
 - **Files Modified**:
   - Client pages: users, payments, membership-report, bookings-report, membership-inquiries, main booking page
@@ -410,6 +410,13 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 - Added proper loading states
 - Square profile pictures with rounded corners
 - Responsive design for all admin controls
+- **2-Hour Booking Display** (November 2025):
+  - Merged 2-hour bookings into single card (no longer shows two separate 1-hour slots)
+  - Booked slots are visually taller (py-8 px-6) with larger text (text-xl) to emphasize 2-hour duration
+  - Profile pictures shown for both user's own bookings and admin view of others' bookings
+  - Profile pictures increased to 64px × 64px for better visibility
+  - Each booking shows only ONE set of guest fee icons, "Guest +$20" button, and "Cancel" button
+  - Cleaner, more intuitive interface matching display page style
 
 ### Features Added (Chronological)
 1. Password change functionality for all users
@@ -431,6 +438,8 @@ Cave Schedule is a Next.js booking system for The Cave Golf simulator business. 
 17. Automatic 1-year membership on user creation (auto-sets Active Until date)
 18. Display page: Added logo next to title, removed navbar completely
 19. Admin password reset: Admins can change passwords for existing users via Edit User modal
+20. Fixed midnight-2am booking visibility (queries now include next day's early morning slots)
+21. Merged 2-hour bookings into single display card with enhanced visual prominence
 
 ## Configuration
 
@@ -489,6 +498,6 @@ pnpm run dev
 
 ---
 
-**Last Updated**: November 22, 2025
-**Version**: 1.2
+**Last Updated**: November 25, 2025
+**Version**: 1.3
 **Maintained by**: Claude Code
