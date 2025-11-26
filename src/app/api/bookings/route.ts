@@ -191,18 +191,22 @@ export async function POST(request: Request) {
     .eq('id', bookingUserId)
     .single()
 
-  // Send confirmation email (don't await - let it happen in background)
+  // Send confirmation email
   if (userProfile?.email) {
-    sendBookingConfirmation({
-      userEmail: userProfile.email,
-      userName: userProfile.name || 'User',
-      simulator,
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-    }).catch((err) => {
+    console.log('[Booking API] Attempting to send confirmation email to:', userProfile.email)
+    try {
+      await sendBookingConfirmation({
+        userEmail: userProfile.email,
+        userName: userProfile.name || 'User',
+        simulator,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+      })
+      console.log('[Booking API] Confirmation email sent successfully')
+    } catch (err) {
       console.error('[Booking API] Failed to send email:', err)
       // Don't fail the booking if email fails
-    })
+    }
   }
 
   return NextResponse.json(data)
