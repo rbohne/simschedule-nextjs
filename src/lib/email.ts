@@ -32,7 +32,7 @@ export async function sendBookingConfirmation(data: BookingEmailData): Promise<b
   try {
     const { userEmail, userName, simulator, startTime, endTime } = data;
 
-    // Format dates for display
+    // Format dates for display in MST timezone
     const startDate = new Date(startTime);
     const endDate = new Date(endTime);
 
@@ -41,18 +41,21 @@ export async function sendBookingConfirmation(data: BookingEmailData): Promise<b
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+      timeZone: 'America/Denver', // MST/MDT
     });
 
     const formattedStartTime = startDate.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
+      timeZone: 'America/Denver', // MST/MDT
     });
 
     const formattedEndTime = endDate.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
+      timeZone: 'America/Denver', // MST/MDT
     });
 
     const simulatorName = simulator.charAt(0).toUpperCase() + simulator.slice(1);
@@ -250,19 +253,21 @@ export async function sendMembershipInquiryNotification(data: MembershipInquiryE
   try {
     const { inquiryName, inquiryEmail, inquiryPhone, inquiryMessage, submittedAt, adminEmails } = data;
 
-    // Format date for display
+    // Format date for display in MST timezone
     const submittedDate = new Date(submittedAt);
     const formattedDate = submittedDate.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+      timeZone: 'America/Denver', // MST/MDT
     });
 
     const formattedTime = submittedDate.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
+      timeZone: 'America/Denver', // MST/MDT
     });
 
     // Email content for admins
