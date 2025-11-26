@@ -1,5 +1,6 @@
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
+import { sendMembershipInquiryNotification } from '@/lib/email'
 
 // POST - Create a public membership inquiry (no auth required)
 export async function POST(request: Request) {
@@ -37,6 +38,29 @@ export async function POST(request: Request) {
   if (createError) {
     console.error('Error creating membership inquiry:', createError)
     return NextResponse.json({ error: 'Failed to submit inquiry. Please try again.' }, { status: 500 })
+  }
+
+  // Get all admin users' emails to send notification
+  const { data: adminProfiles } = await adminClient
+    .from('profiles')
+    .select('email')
+    .eq('role', 'admin')
+
+  const adminEmails = adminProfiles?.map(profile => profile.email).filter(Boolean) || []
+
+  // Send notification email to admins (don't await - let it happen in background)
+  if (adminEmails.length > 0) {
+    sendMembershipInquiryNotification({
+      inquiryName: name,
+      inquiryEmail: email,
+      inquiryPhone: phone,
+      inquiryMessage: message,
+      submittedAt: newInquiry.submitted_at,
+      adminEmails,
+    }).catch((err) => {
+      console.error('[Membership Inquiry API] Failed to send admin notification email:', err)
+      // Don't fail the inquiry submission if email fails
+    })
   }
 
   return NextResponse.json({ success: true, inquiry: newInquiry })
