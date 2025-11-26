@@ -41,15 +41,18 @@ export async function POST(request: Request) {
   }
 
   // Get all admin users' emails to send notification
+  console.log('[Membership Inquiry API] Fetching admin emails...')
   const { data: adminProfiles } = await adminClient
     .from('profiles')
     .select('email')
     .eq('role', 'admin')
 
   const adminEmails = adminProfiles?.map(profile => profile.email).filter(Boolean) || []
+  console.log('[Membership Inquiry API] Found admin emails:', adminEmails.length, adminEmails)
 
   // Send notification email to admins (don't await - let it happen in background)
   if (adminEmails.length > 0) {
+    console.log('[Membership Inquiry API] Attempting to send notification email...')
     sendMembershipInquiryNotification({
       inquiryName: name,
       inquiryEmail: email,
@@ -61,6 +64,8 @@ export async function POST(request: Request) {
       console.error('[Membership Inquiry API] Failed to send admin notification email:', err)
       // Don't fail the inquiry submission if email fails
     })
+  } else {
+    console.log('[Membership Inquiry API] No admin emails found - skipping notification')
   }
 
   return NextResponse.json({ success: true, inquiry: newInquiry })
