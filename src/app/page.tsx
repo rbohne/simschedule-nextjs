@@ -64,10 +64,7 @@ export default function Home() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.access_token) {
-        console.log('[Auth] Including auth token in headers');
         headers['Authorization'] = `Bearer ${session.access_token}`;
-      } else {
-        console.warn('[Auth] No session found, cannot add auth headers');
       }
     } catch (e) {
       console.error('[Auth] Failed to get session:', e);
@@ -83,11 +80,8 @@ export default function Home() {
       .eq("id", userId)
       .single();
 
-    console.log('[Home] User profile loaded:', data);
-
     if (data) {
       setUserProfile(data);
-      console.log('[Home] User role:', data.role, 'isAdmin:', data.role === 'admin');
       // Load all users if admin
       if (data.role === 'admin') {
         loadAllUsers();
