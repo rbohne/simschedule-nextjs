@@ -239,7 +239,6 @@ Website: golfthecave.ca
       html: htmlContent,
     });
 
-    console.log('Email sent successfully:', info.messageId);
     return true;
   } catch (error) {
     console.error('Error sending email:', error);
@@ -465,7 +464,6 @@ Website: golfthecave.ca
       html: htmlContent,
     });
 
-    console.log('Membership inquiry notification sent successfully:', info.messageId);
     return true;
   } catch (error) {
     console.error('Error sending membership inquiry notification:', error);

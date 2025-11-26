@@ -193,7 +193,6 @@ export async function POST(request: Request) {
 
   // Send confirmation email
   if (userProfile?.email) {
-    console.log('[Booking API] Attempting to send confirmation email to:', userProfile.email)
     try {
       await sendBookingConfirmation({
         userEmail: userProfile.email,
@@ -202,7 +201,6 @@ export async function POST(request: Request) {
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
       })
-      console.log('[Booking API] Confirmation email sent successfully')
     } catch (err) {
       console.error('[Booking API] Failed to send email:', err)
       // Don't fail the booking if email fails
