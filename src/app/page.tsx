@@ -415,57 +415,141 @@ export default function Home() {
     setError(null);
     setSuccess(null);
 
-    // Book the selected slot (which will automatically be 2 hours)
-    const slot = selectedSlots[0];
-    const bookingData: any = {
-      simulator: selectedSimulator,
-      start_time: slot.toISOString(),
-    };
+    try {
+      // Validate session before booking
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    // If admin is booking for another user, include the target user ID
-    if (userProfile?.role === 'admin' && selectedUserId) {
-      bookingData.targetUserId = selectedUserId;
-    }
+      if (sessionError || !session) {
+        console.error('[bookSelectedSlots] No valid session:', sessionError);
+        setError("Your session has expired. Please refresh the page and log in again.");
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+        return;
+      }
 
-    const headers = await getAuthHeaders();
-    const response = await fetch("/api/bookings", {
-      method: "POST",
-      headers,
-      body: JSON.stringify(bookingData),
-    });
+      // Book the selected slot (which will automatically be 2 hours)
+      const slot = selectedSlots[0];
+      const bookingData: any = {
+        simulator: selectedSimulator,
+        start_time: slot.toISOString(),
+      };
 
-    if (response.ok) {
-      const bookedForUser = allUsers.find(u => u.id === selectedUserId);
-      const userName = bookedForUser ? bookedForUser.name : 'your';
-      setSuccess(`Successfully booked ${userName === 'your' ? 'your' : userName + "'s"} 2-hour time slot!`);
-      setSelectedSlots([]);
-      setSelectedUserId(null); // Reset selection
-      setUserSearchQuery(''); // Reset search
-      setShowUserDropdown(false); // Hide dropdown
-      await loadBookings();
-    } else {
-      const data = await response.json();
-      setError(
-        data.error || "Unable to book the selected time slot. It may already be booked or you may already have a booking."
-      );
+      // If admin is booking for another user, include the target user ID
+      if (userProfile?.role === 'admin' && selectedUserId) {
+        bookingData.targetUserId = selectedUserId;
+      }
+
+      const headers = await getAuthHeaders();
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(bookingData),
+      });
+
+      if (response.ok) {
+        const bookedForUser = allUsers.find(u => u.id === selectedUserId);
+        const userName = bookedForUser ? bookedForUser.name : 'your';
+        setSuccess(`Successfully booked ${userName === 'your' ? 'your' : userName + "'s"} 2-hour time slot!`);
+        setSelectedSlots([]);
+        setSelectedUserId(null); // Reset selection
+        setUserSearchQuery(''); // Reset search
+        setShowUserDropdown(false); // Hide dropdown
+        await loadBookings();
+      } else if (response.status === 401) {
+        setError("Your session has expired. Please refresh the page and log in again.");
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+      } else {
+        const data = await response.json();
+        setError(
+          data.error || "Unable to book the selected time slot. It may already be booked or you may already have a booking."
+        );
+      }
+    } catch (err) {
+      console.error('[bookSelectedSlots] Exception:', err);
+      setError("Failed to book time slot. Please try again.");
     }
   }
 
   async function cancelBooking(bookingId: number) {
+    console.log('[cancelBooking] Function called with bookingId:', bookingId);
     setError(null);
     setSuccess(null);
 
-    const headers = await getAuthHeaders();
-    const response = await fetch(`/api/bookings?id=${bookingId}`, {
-      method: "DELETE",
-      headers,
-    });
+    try {
+      // First, validate that we have a valid session
+      console.log('[cancelBooking] Checking session validity...');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    if (response.ok) {
-      setSuccess("Booking cancelled successfully!");
-      await loadBookings();
-    } else {
-      setError("Unable to cancel this booking.");
+      if (sessionError || !session) {
+        console.error('[cancelBooking] No valid session:', sessionError);
+        setError("Your session has expired. Please refresh the page and log in again.");
+        // Optionally redirect to login after a delay
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+        return;
+      }
+
+      console.log('[cancelBooking] Session is valid, expires at:', new Date(session.expires_at! * 1000).toISOString());
+
+      console.log('[cancelBooking] Getting auth headers...');
+      const headers = await getAuthHeaders();
+      console.log('[cancelBooking] Headers obtained:', { hasAuth: !!headers.Authorization });
+
+      console.log('[cancelBooking] Sending DELETE request to /api/bookings?id=' + bookingId);
+      const response = await fetch(`/api/bookings?id=${bookingId}`, {
+        method: "DELETE",
+        headers,
+      });
+
+      console.log('[cancelBooking] Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
+      if (response.ok) {
+        console.log('[cancelBooking] Success! Reloading bookings...');
+        const result = await response.json();
+
+        // Show success message with guest fee info if applicable
+        if (result.deletedGuestFees && result.deletedGuestFees > 0) {
+          setSuccess(`Booking cancelled successfully! ${result.deletedGuestFees} guest fee(s) removed.`);
+        } else {
+          setSuccess("Booking cancelled successfully!");
+        }
+
+        // Reload bookings and user balance
+        await loadBookings();
+
+        // Reload user balance if there were guest fees deleted
+        if (user && result.deletedGuestFees > 0) {
+          await loadUserBalance(user.id);
+        }
+      } else if (response.status === 401) {
+        // Unauthorized - session expired on server side
+        console.error('[cancelBooking] 401 Unauthorized - session expired on server');
+        setError("Your session has expired. Please refresh the page and log in again.");
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+      } else {
+        // Get the error message from the API response
+        const data = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[cancelBooking] Cancellation failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: data.error,
+          bookingId
+        });
+        setError(data.error || `Unable to cancel this booking. (Error ${response.status})`);
+      }
+    } catch (err) {
+      console.error('[cancelBooking] Exception caught:', err);
+      setError("Failed to cancel booking. Please try again.");
     }
   }
 
@@ -473,6 +557,19 @@ export default function Home() {
     setAddingGuestFee(bookingId);
 
     try {
+      // Validate session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        console.error('[addGuestFee] No valid session:', sessionError);
+        setError("Your session has expired. Please refresh the page and log in again.");
+        setAddingGuestFee(null);
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+        return;
+      }
+
       const headers = await getAuthHeaders();
       const response = await fetch("/api/transactions", {
         method: "POST",
@@ -495,10 +592,16 @@ export default function Home() {
         if (user && userId === user.id) {
           await loadUserBalance(user.id);
         }
+      } else if (response.status === 401) {
+        setError("Your session has expired. Please refresh the page and log in again.");
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
       } else {
         setError("Failed to add guest fee");
       }
     } catch (err) {
+      console.error('[addGuestFee] Exception:', err);
       setError("Failed to add guest fee");
     } finally {
       setAddingGuestFee(null);

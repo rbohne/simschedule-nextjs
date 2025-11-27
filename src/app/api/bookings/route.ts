@@ -214,16 +214,30 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   const supabase = await createServerSupabaseClient(request)
 
+  console.log('[Booking API DELETE] Starting cancellation request')
+
   // Get current user
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  console.log('[Booking API DELETE] Auth check:', {
+    userId: user?.id,
+    email: user?.email,
+    hasAuthError: !!authError,
+    authError: authError?.message
+  })
+
   if (!user) {
+    console.log('[Booking API DELETE] No user found - unauthorized')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)
   const bookingId = searchParams.get('id')
 
+  console.log('[Booking API DELETE] Request params:', { bookingId, userId: user.id })
+
   if (!bookingId) {
+    console.log('[Booking API DELETE] Missing booking ID')
     return NextResponse.json({ error: 'Missing booking ID' }, { status: 400 })
   }
 
@@ -236,18 +250,68 @@ export async function DELETE(request: Request) {
 
   const isAdmin = profile?.role === 'admin'
 
+  console.log('[Booking API DELETE] User profile check:', {
+    userId: user.id,
+    isAdmin,
+    role: profile?.role
+  })
+
+  console.log('[Booking API DELETE] Attempting to delete booking:', {
+    bookingId: parseInt(bookingId),
+    usingAdminClient: isAdmin
+  })
+
+  // IMPORTANT: Always use admin client for deleting transactions to bypass RLS
+  // Regular users can't delete transactions due to RLS policies, even their own
+  const adminClient = createAdminSupabaseClient()
+
+  // First, delete all guest fee transactions associated with this booking
+  console.log('[Booking API DELETE] Deleting associated guest fee transactions...')
+  const { data: deletedTransactions, error: transactionError } = await adminClient
+    .from('user_transactions')
+    .delete()
+    .eq('booking_id', parseInt(bookingId))
+    .eq('type', 'guest_fee')
+    .select()
+
+  if (transactionError) {
+    console.error('[Booking API DELETE] Failed to delete guest fee transactions:', {
+      message: transactionError.message,
+      details: transactionError.details,
+      hint: transactionError.hint,
+      code: transactionError.code
+    })
+    return NextResponse.json({ error: `Failed to delete guest fees: ${transactionError.message}` }, { status: 500 })
+  }
+
+  console.log('[Booking API DELETE] Deleted guest fee transactions:', {
+    count: deletedTransactions?.length || 0,
+    transactionIds: deletedTransactions?.map(t => t.id) || []
+  })
+
   // If admin, use admin client to bypass RLS and delete any booking
   // Otherwise, use regular client which will be restricted by RLS to only delete own bookings
-  const clientToUse = isAdmin ? createAdminSupabaseClient() : supabase
+  const clientToUse = isAdmin ? adminClient : supabase
 
+  // Now delete the booking itself
   const { error } = await clientToUse
     .from('bookings')
     .delete()
     .eq('id', parseInt(bookingId))
 
   if (error) {
+    console.error('[Booking API DELETE] Delete failed:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code
+    })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true })
+  console.log('[Booking API DELETE] Booking deleted successfully')
+  return NextResponse.json({
+    success: true,
+    deletedGuestFees: deletedTransactions?.length || 0
+  })
 }
