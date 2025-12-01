@@ -59,10 +59,32 @@ export async function GET(request: Request) {
 
     console.log(`[Display API] Fetched ${profiles?.length || 0} profiles for bookings`)
 
-    // Attach profiles to bookings
+    // Fetch guest fee transactions for these bookings
+    const bookingIds = bookings.map((b: any) => b.id)
+    const { data: transactions } = await supabase
+      .from('user_transactions')
+      .select('*')
+      .in('booking_id', bookingIds)
+      .eq('type', 'guest_fee')
+
+    console.log(`[Display API] Fetched ${transactions?.length || 0} guest fee transactions`)
+
+    // Group transactions by booking_id
+    const transactionsByBooking: { [key: number]: any[] } = {}
+    transactions?.forEach((trans) => {
+      if (trans.booking_id) {
+        if (!transactionsByBooking[trans.booking_id]) {
+          transactionsByBooking[trans.booking_id] = []
+        }
+        transactionsByBooking[trans.booking_id].push(trans)
+      }
+    })
+
+    // Attach profiles and guest transactions to bookings
     const bookingsWithProfiles = bookings.map((booking: any) => ({
       ...booking,
       profile: profiles?.find((p) => p.id === booking.user_id),
+      guest_transactions: transactionsByBooking[booking.id] || [],
     }))
 
     return NextResponse.json(bookingsWithProfiles)

@@ -185,6 +185,20 @@ export default function DisplayPage() {
                 <div>
                   {isBooked ? (
                     <div className="flex items-center gap-3">
+                      {booking.guest_transactions && booking.guest_transactions.length > 0 && (
+                        <div className="flex gap-1">
+                          {booking.guest_transactions.map((transaction: any) => (
+                            <span
+                              key={transaction.id}
+                              className="text-2xl"
+                              style={{ filter: 'grayscale(100%) brightness(2.5)' }}
+                              title={`Guest ($20)`}
+                            >
+                              👤
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       {booking.profile?.profile_picture_url && (
                         <img
                           src={booking.profile.profile_picture_url}
