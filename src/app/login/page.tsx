@@ -245,7 +245,7 @@ export default function LoginPage() {
                   <div>
                     <h4 className="text-gray-100 font-medium">Annual Membership</h4>
                     <p className="text-gray-300 text-lg font-semibold">$400/year + GST</p>
-                    <p className="text-gray-400 text-sm">Unlimited access to both simulators</p>
+                    <p className="text-gray-400 text-sm">Unlimited access to both simulators for 365 days from the date of purchase</p>
                   </div>
                 </div>
 

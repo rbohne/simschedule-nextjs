@@ -610,8 +610,22 @@ export default function Home() {
 
   async function removeGuestFee(transactionId: number, userId: string) {
     try {
+      // Validate session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        console.error('[removeGuestFee] No valid session:', sessionError);
+        setError("Your session has expired. Please refresh the page and log in again.");
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+        return;
+      }
+
+      const headers = await getAuthHeaders();
       const response = await fetch(`/api/transactions?id=${transactionId}`, {
         method: "DELETE",
+        headers,
       });
 
       if (response.ok) {
@@ -623,10 +637,16 @@ export default function Home() {
         if (user && userId === user.id) {
           await loadUserBalance(user.id);
         }
+      } else if (response.status === 401) {
+        setError("Your session has expired. Please refresh the page and log in again.");
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
       } else {
         setError("Failed to remove guest fee");
       }
     } catch (err) {
+      console.error('[removeGuestFee] Exception:', err);
       setError("Failed to remove guest fee");
     }
   }
@@ -1263,21 +1283,26 @@ export default function Home() {
                           {isUserBooking ? (
                             <>
                               {booking.guest_transactions && booking.guest_transactions.length > 0 && (
-                                <div className="flex gap-1">
-                                  {booking.guest_transactions.map((transaction) => (
-                                    <button
-                                      key={transaction.id}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        removeGuestFee(transaction.id, booking.user_id);
-                                      }}
-                                      className="text-2xl hover:opacity-60 transition-opacity"
-                                      style={{ filter: 'grayscale(100%) brightness(2.5)' }}
-                                      title="Click to remove this guest ($20)"
-                                    >
-                                      👤
-                                    </button>
-                                  ))}
+                                <div className="flex flex-col items-center">
+                                  <div className="flex gap-1">
+                                    {booking.guest_transactions.map((transaction) => (
+                                      <button
+                                        key={transaction.id}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          removeGuestFee(transaction.id, booking.user_id);
+                                        }}
+                                        className="text-2xl hover:opacity-60 transition-opacity"
+                                        style={{ filter: 'grayscale(100%) brightness(2.5)' }}
+                                        title="Click to remove this guest ($20)"
+                                      >
+                                        👤
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <span className="text-sm text-gray-300 mt-1">
+                                    ({booking.guest_transactions.length} {booking.guest_transactions.length === 1 ? 'Guest' : 'Guests'} - ${booking.guest_transactions.length * 20})
+                                  </span>
                                 </div>
                               )}
                               {(booking.profile as Profile)?.profile_picture_url && (
@@ -1318,21 +1343,26 @@ export default function Home() {
                           ) : userProfile?.role === "admin" ? (
                             <>
                               {booking.guest_transactions && booking.guest_transactions.length > 0 && (
-                                <div className="flex gap-1">
-                                  {booking.guest_transactions.map((transaction) => (
-                                    <button
-                                      key={transaction.id}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        removeGuestFee(transaction.id, booking.user_id);
-                                      }}
-                                      className="text-2xl hover:opacity-60 transition-opacity"
-                                      style={{ filter: 'grayscale(100%) brightness(2.5)' }}
-                                      title="Click to remove this guest ($20)"
-                                    >
-                                      👤
-                                    </button>
-                                  ))}
+                                <div className="flex flex-col items-center">
+                                  <div className="flex gap-1">
+                                    {booking.guest_transactions.map((transaction) => (
+                                      <button
+                                        key={transaction.id}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          removeGuestFee(transaction.id, booking.user_id);
+                                        }}
+                                        className="text-2xl hover:opacity-60 transition-opacity"
+                                        style={{ filter: 'grayscale(100%) brightness(2.5)' }}
+                                        title="Click to remove this guest ($20)"
+                                      >
+                                        👤
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <span className="text-sm text-gray-300 mt-1">
+                                    ({booking.guest_transactions.length} {booking.guest_transactions.length === 1 ? 'Guest' : 'Guests'} - ${booking.guest_transactions.length * 20})
+                                  </span>
                                 </div>
                               )}
                               {(booking.profile as Profile)?.profile_picture_url && (
