@@ -26,6 +26,24 @@ export default function MessagesPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  // Helper function to get auth headers for fetch requests
+  async function getAuthHeaders(): Promise<Record<string, string>> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+    } catch (e) {
+      console.error('[Messages Page] Failed to get session:', e);
+    }
+
+    return headers;
+  }
+
   // Counts
   const totalCount = messages.length;
   const unreadCount = messages.filter((m) => !m.is_read).length;
@@ -95,7 +113,8 @@ export default function MessagesPage() {
   }
 
   async function loadMessages() {
-    const response = await fetch("/api/contact");
+    const headers = await getAuthHeaders();
+    const response = await fetch("/api/contact", { headers });
     if (response.ok) {
       const data = await response.json();
       setMessages(data);
@@ -132,9 +151,10 @@ export default function MessagesPage() {
 
     // Auto-mark as read when viewing
     if (!message.is_read) {
+      const headers = await getAuthHeaders();
       await fetch("/api/contact", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           id: messageId,
           admin_notes: message.admin_notes,
@@ -151,9 +171,10 @@ export default function MessagesPage() {
   async function saveMessageDetails() {
     if (!selectedMessage) return;
 
+    const headers = await getAuthHeaders();
     const response = await fetch("/api/contact", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         id: selectedMessage.id,
         admin_notes: adminNotes,
@@ -173,8 +194,10 @@ export default function MessagesPage() {
       return;
     }
 
+    const headers = await getAuthHeaders();
     const response = await fetch(`/api/contact?id=${messageId}`, {
       method: "DELETE",
+      headers
     });
 
     if (response.ok) {

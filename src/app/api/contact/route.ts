@@ -2,8 +2,8 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
 // GET - Get all contact messages (admin only)
-export async function GET() {
-  const supabase = await createServerSupabaseClient()
+export async function GET(request: Request) {
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()

@@ -3,11 +3,17 @@ import { NextResponse } from 'next/server'
 
 // GET - Get all transactions or user balance
 export async function GET(request: Request) {
+  console.log('[API/Transactions] GET request received')
+  console.log('[API/Transactions] Authorization header:', request.headers.get('authorization') ? 'Present' : 'Missing')
+  
   const supabase = await createServerSupabaseClient(request)
 
   // Get current user
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  console.log('[API/Transactions] User from getUser():', user ? user.id : 'None', 'Error:', authError?.message)
+  
   if (!user) {
+    console.log('[API/Transactions] No user - returning 401')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -36,6 +42,7 @@ export async function GET(request: Request) {
 
   // Get user balances (sum of all transactions grouped by user)
   if (action === 'balances') {
+    console.log('[API/Transactions] Fetching balances with admin client')
     const adminClient = createAdminSupabaseClient()
 
     // Get all transactions
@@ -43,7 +50,10 @@ export async function GET(request: Request) {
       .from('user_transactions')
       .select('user_id, amount')
 
+    console.log('[API/Transactions] Transactions query result:', transactions ? `${transactions.length} records` : 'null', 'Error:', transError?.message)
+
     if (transError) {
+      console.log('[API/Transactions] Returning 500 error:', transError.message)
       return NextResponse.json({ error: transError.message }, { status: 500 })
     }
 
