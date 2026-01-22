@@ -498,6 +498,71 @@ pnpm run dev
 
 ---
 
-**Last Updated**: November 25, 2025
-**Version**: 1.3
+## Technical Notes
+
+### API Authentication Pattern
+
+All API routes that require authentication must follow this pattern:
+
+**Server-Side (API Routes):**
+```typescript
+// API route handler must accept request parameter
+export async function GET(request: Request) {
+  // Pass request to get Authorization header
+  const supabase = await createServerSupabaseClient(request)
+  
+  // Validate user authentication
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  // ... rest of handler
+}
+```
+
+**Client-Side (Pages):**
+```typescript
+// Helper function to get auth headers
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  };
+  
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+  } catch (e) {
+    console.error('Failed to get session:', e);
+  }
+  
+  return headers;
+}
+
+// Use in fetch calls
+const headers = await getAuthHeaders();
+const response = await fetch('/api/endpoint', { headers });
+```
+
+**Important**: Without proper Authorization headers, API calls will fail with 401 errors or cause page timeouts and unexpected redirects to login.
+
+### Recent Fixes (January 2026)
+
+**API Authentication Issue Resolution:**
+- Fixed `/api/contact` endpoint to accept `request` parameter for auth
+- Added `getAuthHeaders()` helper to messages page
+- Ensured all fetch calls include Authorization headers
+- Added debug logging to transactions API
+- Resolved issue where pages would timeout after navigation and redirect to login
+
+**Supabase Key Format Update:**
+- Updated from legacy JWT-format service role keys to new Secret Key format
+- New keys use format: `sb_secret_...` (vs old `eyJ...` JWT format)
+- Client keys hardcoded in `src/lib/supabase.ts` due to Next.js 16 + Turbopack env var issue
+
+---
+
+**Last Updated**: January 22, 2026
+**Version**: 1.4
 **Maintained by**: Claude Code

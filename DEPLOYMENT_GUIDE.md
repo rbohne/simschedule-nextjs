@@ -63,15 +63,18 @@ Replace `YOUR-USERNAME` with your actual GitHub username.
 Click "Environment Variables" and add these:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL = your-supabase-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY = your-supabase-anon-key
-SUPABASE_SERVICE_ROLE_KEY = your-supabase-service-role-key
+SUPABASE_SERVICE_ROLE_KEY = your-supabase-secret-key
 ```
 
-**To find these values:**
-1. Go to your Supabase project dashboard
+**Important Notes:**
+- The client-side keys (`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`) are hardcoded in `src/lib/supabase.ts` due to a Next.js 16 + Turbopack compatibility issue, so you don't need to add them as environment variables in Vercel.
+- Only the server-side `SUPABASE_SERVICE_ROLE_KEY` needs to be configured.
+
+**To find the Secret Key:**
+1. Go to your Supabase project dashboard at https://supabase.com
 2. Click "Settings" (gear icon) > "API"
-3. Copy the URL and keys from there
+3. In the **Project API keys** section, copy the **Secret Key** (NOT the Publishable Key)
+4. **Important**: Supabase updated their key format in 2024. The new keys start with `sb_secret_...` or similar. If you have an old JWT-format key (starts with `eyJ...`), you may see "Legacy API keys are disabled" errors. Use the new Secret Key format.
 
 4. Click "Deploy"
 
@@ -145,6 +148,26 @@ DNS changes can take 5 minutes to 48 hours (usually ~10 minutes).
 ### Login Not Working
 - Make sure Supabase URLs are added correctly
 - Check that environment variables match your local `.env.local`
+- Verify you're using the new Supabase Secret Key format (not legacy JWT format)
+
+### Pages Timeout and Redirect to Login
+- **Symptom**: After navigating between pages or waiting on a page, you get redirected to login
+- **Cause**: Missing Authorization headers on API endpoint calls
+- **Fix**: Ensure all API route handlers accept the `request` parameter and all fetch calls include Authorization headers using `getAuthHeaders()` helper function
+- **Example**: See `/src/app/messages/page.tsx` for proper implementation
+
+### API Returns 401 Unauthorized Errors
+- **Symptom**: API endpoints return "Unauthorized" even when logged in
+- **Cause**: API route not receiving authentication token from client
+- **Fix**: 
+  1. Ensure the API route's GET/POST/PATCH/DELETE function accepts `request: Request` parameter
+  2. Pass the request to `createServerSupabaseClient(request)`
+  3. On the client side, use `getAuthHeaders()` to include Authorization header in fetch calls
+
+### "Legacy API keys are disabled" Error
+- **Symptom**: Admin operations fail with this error
+- **Cause**: Using old JWT-format Supabase service role key
+- **Fix**: Update `SUPABASE_SERVICE_ROLE_KEY` in Vercel environment variables with the new Secret Key from Supabase dashboard (starts with `sb_secret_...`)
 
 ### Domain Not Working
 - Wait up to 48 hours for DNS propagation
