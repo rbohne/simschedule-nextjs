@@ -70,17 +70,21 @@ export default function AdjustmentHistoryPage() {
   }, []);
   async function loadAdjustments() {
     try {
-      // Fetch all adjustment transactions
-      const { data: transactionsData, error: transError } = await supabase
-        .from("user_transactions")
-        .select("*")
-        .eq("type", "adjustment")
-        .order("created_at", { ascending: false });
+      const stored = getStoredSession();
+      const authHeaders = { 'Authorization': `Bearer ${stored?.access_token}`, 'apikey': supabaseAnonKey };
 
-      if (transError) {
-        console.error("Error loading adjustments:", transError);
+      // Fetch all adjustment transactions
+      const transRes = await fetch(
+        `${supabaseUrl}/rest/v1/user_transactions?select=*&type=eq.adjustment&order=created_at.desc`,
+        { headers: authHeaders }
+      );
+
+      if (!transRes.ok) {
+        console.error("Error loading adjustments:", await transRes.text());
         return;
       }
+
+      const transactionsData = await transRes.json();
 
       if (!transactionsData || transactionsData.length === 0) {
         setAdjustments([]);
@@ -88,21 +92,23 @@ export default function AdjustmentHistoryPage() {
       }
 
       // Get unique user IDs
-      const userIds = [...new Set(transactionsData.map(t => t.user_id))];
-      const creatorIds = [...new Set(transactionsData.map(t => t.created_by).filter(Boolean))];
-      const allUserIds = [...new Set([...userIds, ...creatorIds])];
+      const userIds = [...new Set(transactionsData.map((t: any) => t.user_id))];
+      const creatorIds = [...new Set(transactionsData.map((t: any) => t.created_by).filter(Boolean))];
+      const allUserIds = [...new Set([...userIds, ...creatorIds])] as string[];
 
       // Fetch all profiles
-      const { data: profilesData } = await supabase
-        .from("profiles")
-        .select("id, name, email, profile_picture_url")
-        .in("id", allUserIds);
+      const profilesRes = await fetch(
+        `${supabaseUrl}/rest/v1/profiles?select=id,name,email,profile_picture_url&id=in.(${allUserIds.join(',')})`,
+        { headers: authHeaders }
+      );
+
+      const profilesData = profilesRes.ok ? await profilesRes.json() : [];
 
       // Create lookup map
-      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+      const profilesMap = new Map(profilesData.map((p: any) => [p.id, p]));
 
       // Combine the data
-      const enrichedAdjustments = transactionsData.map(transaction => ({
+      const enrichedAdjustments = transactionsData.map((transaction: any) => ({
         ...transaction,
         profile: profilesMap.get(transaction.user_id),
         creator: profilesMap.get(transaction.created_by),
