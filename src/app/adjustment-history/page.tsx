@@ -140,6 +140,12 @@ export default function AdjustmentHistoryPage() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-6">
+            <button
+              onClick={() => router.push('/payments')}
+              className="mb-4 text-gray-400 hover:text-gray-200 flex items-center gap-1 text-sm"
+            >
+              ← Back to User Payments
+            </button>
             <h1 className="text-3xl font-bold text-gray-100">Adjustment History</h1>
             <p className="text-gray-400 mt-2">
               View all balance adjustments made by admins
