@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 
 // POST - Create a new contact message (authenticated users)
 export async function POST(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
 
 // PATCH - Update a contact message (admin only)
 export async function PATCH(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()
@@ -142,7 +142,7 @@ export async function PATCH(request: Request) {
 
 // DELETE - Delete a contact message (admin only)
 export async function DELETE(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Get current user
   const { data: { user } } = await supabase.auth.getUser()

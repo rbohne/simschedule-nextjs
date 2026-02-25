@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Missing parameters' }, { status: 400 })
   }
 
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   const startOfDay = new Date(date)
   startOfDay.setHours(0, 0, 0, 0)

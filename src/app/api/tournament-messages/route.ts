@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 
 // GET - Fetch tournament messages (all for admins, only active for regular users)
 export async function GET(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Check if user is admin
   const {
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
 
 // POST - Create a new tournament message (admin only)
 export async function POST(request: Request) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
 
   // Check if user is admin
   const {

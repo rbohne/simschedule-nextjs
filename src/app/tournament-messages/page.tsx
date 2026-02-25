@@ -67,7 +67,10 @@ export default function TournamentMessagesPage() {
 
   async function loadMessages() {
     try {
-      const response = await fetch('/api/tournament-messages')
+      const stored = getStoredSession()
+      const response = await fetch('/api/tournament-messages', {
+        headers: stored?.access_token ? { 'Authorization': `Bearer ${stored.access_token}` } : {},
+      })
       const data = await response.json()
       if (data.messages) {
         setMessages(data.messages)
@@ -88,10 +91,12 @@ export default function TournamentMessagesPage() {
     }
 
     try {
+      const stored = getStoredSession()
       const response = await fetch('/api/tournament-messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(stored?.access_token ? { 'Authorization': `Bearer ${stored.access_token}` } : {}),
         },
         body: JSON.stringify({ message: newMessage }),
       })
@@ -121,10 +126,12 @@ export default function TournamentMessagesPage() {
     }
 
     try {
+      const stored = getStoredSession()
       const response = await fetch(`/api/tournament-messages/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          ...(stored?.access_token ? { 'Authorization': `Bearer ${stored.access_token}` } : {}),
         },
         body: JSON.stringify({ message: editingText }),
       })
@@ -150,10 +157,12 @@ export default function TournamentMessagesPage() {
     setSuccess(null)
 
     try {
+      const stored = getStoredSession()
       const response = await fetch(`/api/tournament-messages/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          ...(stored?.access_token ? { 'Authorization': `Bearer ${stored.access_token}` } : {}),
         },
         body: JSON.stringify({ is_active: !currentStatus }),
       })
@@ -181,8 +190,10 @@ export default function TournamentMessagesPage() {
     setSuccess(null)
 
     try {
+      const stored = getStoredSession()
       const response = await fetch(`/api/tournament-messages/${id}`, {
         method: 'DELETE',
+        headers: stored?.access_token ? { 'Authorization': `Bearer ${stored.access_token}` } : {},
       })
 
       if (!response.ok) {

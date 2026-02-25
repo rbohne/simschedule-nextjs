@@ -141,9 +141,13 @@ export default function ContactPage() {
         }
       }
 
+      const stored = getStoredSession()
       const response = await fetch("/api/contact", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(stored?.access_token ? { "Authorization": `Bearer ${stored.access_token}` } : {}),
+        },
         body: JSON.stringify({
           issue_type: formData.issueType,
           subject: formData.subject,

@@ -6,7 +6,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
   const { id } = await params
 
   // Check if user is admin
@@ -71,7 +71,7 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient(request)
   const { id } = await params
 
   // Check if user is admin
