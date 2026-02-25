@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient, getStoredSession, supabaseUrl, supabaseAnonKey } from '@/lib/supabase'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 
@@ -26,49 +26,54 @@ export default function Navbar() {
   }
 
   useEffect(() => {
-    // Get initial user
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      setUser(user)
+    let mounted = true;
 
-      // Check if user is admin and get user's name
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, name')
-          .eq('id', user.id)
-          .single()
+    const stored = getStoredSession();
+    if (stored?.user) {
+      // Immediately show navbar with what we have
+      setUser(stored.user);
+      setUserName(stored.user.email?.split('@')[0] || '');
+      setLoading(false);
 
-        setIsAdmin(profile?.role === 'admin')
-        setUserName(profile?.name || user.email?.split('@')[0] || '')
-      }
+      // Load profile (name + role) in background
+      fetch(
+        `${supabaseUrl}/rest/v1/profiles?select=role,name&id=eq.${stored.user.id}`,
+        { headers: { 'Authorization': `Bearer ${stored.access_token}`, 'apikey': supabaseAnonKey } }
+      ).then(res => res.ok ? res.json() : []).then(profiles => {
+        if (!mounted) return;
+        if (profiles?.[0]) {
+          setIsAdmin(profiles[0].role === 'admin');
+          setUserName(profiles[0].name || stored.user.email?.split('@')[0] || '');
+        }
+      }).catch(() => {});
+    } else {
+      setLoading(false);
+    }
 
-      setLoading(false)
-    })
-
-    // Listen for auth changes
+    // Listen for auth changes (sign-in / sign-out from other tabs, token refresh)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null)
+      if (!mounted) return;
+      setUser(session?.user ?? null);
 
-      // Check admin role and get name when auth state changes
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('role, name')
           .eq('id', session.user.id)
-          .single()
-
-        setIsAdmin(profile?.role === 'admin')
-        setUserName(profile?.name || session.user.email?.split('@')[0] || '')
+          .single();
+        if (!mounted) return;
+        setIsAdmin(profile?.role === 'admin');
+        setUserName(profile?.name || session.user.email?.split('@')[0] || '');
       } else {
-        setIsAdmin(false)
-        setUserName('')
+        setIsAdmin(false);
+        setUserName('');
       }
-    })
+    });
 
-    return () => subscription.unsubscribe()
-  }, [supabase])
+    return () => { mounted = false; subscription.unsubscribe(); };
+  }, [])
 
   // Close user menu when clicking outside
   useEffect(() => {
