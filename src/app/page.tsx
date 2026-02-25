@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { createClient, getStoredSession } from "@/lib/supabase";
+import { createClient, getStoredSession, supabaseUrl, supabaseAnonKey } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import type { Simulator, Booking, Profile, GuestTransaction } from "@/types/database";
@@ -70,18 +70,23 @@ export default function Home() {
   }
 
   async function loadUserProfile(userId: string) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-
-    if (data) {
-      setUserProfile(data);
-      // Load all users if admin
-      if (data.role === 'admin') {
-        loadAllUsers();
+    try {
+      const stored = getStoredSession();
+      const res = await fetch(
+        `${supabaseUrl}/rest/v1/profiles?select=*&id=eq.${userId}`,
+        { headers: { 'Authorization': `Bearer ${stored?.access_token}`, 'apikey': supabaseAnonKey } }
+      );
+      if (res.ok) {
+        const profiles = await res.json();
+        if (profiles?.[0]) {
+          setUserProfile(profiles[0]);
+          if (profiles[0].role === 'admin') {
+            loadAllUsers();
+          }
+        }
       }
+    } catch (e) {
+      console.error('Error loading user profile:', e);
     }
   }
 
@@ -351,10 +356,8 @@ export default function Home() {
 
     try {
       // Validate session before booking
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError || !session) {
-        console.error('[bookSelectedSlots] No valid session:', sessionError);
+      const stored = getStoredSession();
+      if (!stored?.access_token) {
         setError("Your session has expired. Please refresh the page and log in again.");
         setTimeout(() => {
           router.push('/login');
@@ -415,19 +418,14 @@ export default function Home() {
     try {
       // First, validate that we have a valid session
       console.log('[cancelBooking] Checking session validity...');
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError || !session) {
-        console.error('[cancelBooking] No valid session:', sessionError);
+      const stored = getStoredSession();
+      if (!stored?.access_token) {
         setError("Your session has expired. Please refresh the page and log in again.");
-        // Optionally redirect to login after a delay
         setTimeout(() => {
           router.push('/login');
         }, 3000);
         return;
       }
-
-      console.log('[cancelBooking] Session is valid, expires at:', new Date(session.expires_at! * 1000).toISOString());
 
       console.log('[cancelBooking] Getting auth headers...');
       const headers = await getAuthHeaders();
@@ -492,10 +490,8 @@ export default function Home() {
 
     try {
       // Validate session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError || !session) {
-        console.error('[addGuestFee] No valid session:', sessionError);
+      const stored = getStoredSession();
+      if (!stored?.access_token) {
         setError("Your session has expired. Please refresh the page and log in again.");
         setAddingGuestFee(null);
         setTimeout(() => {
@@ -545,10 +541,8 @@ export default function Home() {
   async function removeGuestFee(transactionId: number, userId: string) {
     try {
       // Validate session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError || !session) {
-        console.error('[removeGuestFee] No valid session:', sessionError);
+      const stored = getStoredSession();
+      if (!stored?.access_token) {
         setError("Your session has expired. Please refresh the page and log in again.");
         setTimeout(() => {
           router.push('/login');
