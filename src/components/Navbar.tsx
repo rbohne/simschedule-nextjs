@@ -58,14 +58,14 @@ export default function Navbar() {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, name')
-          .eq('id', session.user.id)
-          .single();
+        const res = await fetch(
+          `${supabaseUrl}/rest/v1/profiles?select=role,name&id=eq.${session.user.id}`,
+          { headers: { 'Authorization': `Bearer ${session.access_token}`, 'apikey': supabaseAnonKey } }
+        );
         if (!mounted) return;
-        setIsAdmin(profile?.role === 'admin');
-        setUserName(profile?.name || session.user.email?.split('@')[0] || '');
+        const profiles = res.ok ? await res.json() : [];
+        setIsAdmin(profiles?.[0]?.role === 'admin');
+        setUserName(profiles?.[0]?.name || session.user.email?.split('@')[0] || '');
       } else {
         setIsAdmin(false);
         setUserName('');
