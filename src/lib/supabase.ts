@@ -2,8 +2,28 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Hardcoded values - Next.js 16.0.1 with Turbopack isn't replacing process.env in browser
-const supabaseUrl = "https://uxtdsiqlzhzrwqyozuho.supabase.co";
-const supabaseAnonKey = "sb_publishable_gPV9pjTLd4XqgnmGxk7aTw_Ylne86n8";
+export const supabaseUrl = "https://uxtdsiqlzhzrwqyozuho.supabase.co";
+export const supabaseAnonKey = "sb_publishable_gPV9pjTLd4XqgnmGxk7aTw_Ylne86n8";
+
+// Storage key used by Supabase auth client
+const AUTH_STORAGE_KEY = `sb-${supabaseUrl.split('//')[1].split('.')[0]}-auth-token`;
+
+/**
+ * Reads the current auth session directly from browser storage.
+ * This bypasses the Supabase client's initializePromise, which can block for
+ * up to 30 seconds when a token refresh fails. Use this for immediate auth
+ * checks that must not block on network activity.
+ */
+export function getStoredSession(): any | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(AUTH_STORAGE_KEY) ||
+                window.localStorage.getItem(AUTH_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
 
 // Extend window to store the global singleton
 declare global {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -21,67 +21,6 @@ export default function LoginPage() {
   })
   const router = useRouter()
 
-  // Clear any broken sessions on mount (especially important for mobile)
-  useEffect(() => {
-    const clearBrokenSession = async () => {
-      try {
-        // Check if we just did a cleanup reload to prevent infinite loop
-        const justReloaded = sessionStorage.getItem('auth-cleanup-reload');
-        if (justReloaded) {
-          sessionStorage.removeItem('auth-cleanup-reload');
-          return;
-        }
-
-        const supabase = createClient();
-
-        // Set a timeout for the session check to prevent hanging
-        const sessionCheckPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Session check timeout')), 3000)
-        );
-
-        const { data: { session }, error } = await Promise.race([
-          sessionCheckPromise,
-          timeoutPromise
-        ]) as any;
-
-        // Only cleanup if there's an actual error (not just "no session")
-        // AuthSessionMissingError is normal for logged-out users
-        if (error && error.message !== 'Auth session missing!') {
-          console.log('Broken session detected, forcing cleanup:', error.message);
-          await forceAuthCleanup();
-        }
-      } catch (e: any) {
-        // Only cleanup on timeout, not on "session missing" errors
-        if (e?.message === 'Session check timeout') {
-          console.log('Session check timeout, forcing cleanup');
-          await forceAuthCleanup();
-        }
-        // Silently ignore "Auth session missing" - it's expected on login page
-      }
-    };
-
-    const forceAuthCleanup = async () => {
-      if (typeof window !== 'undefined') {
-        // Clear all Supabase-related storage
-        const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token'];
-        storageKeys.forEach(key => {
-          try {
-            localStorage.removeItem(key);
-            sessionStorage.removeItem(key);
-          } catch (e) {
-            console.log('Storage clear error:', e);
-          }
-        });
-
-        // Set flag and force reload to reinitialize Supabase client
-        sessionStorage.setItem('auth-cleanup-reload', 'true');
-        window.location.reload();
-      }
-    };
-
-    clearBrokenSession();
-  }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()

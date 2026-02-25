@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase";
+import { createClient, getStoredSession, supabaseUrl, supabaseAnonKey } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 interface Payment {
@@ -33,59 +33,41 @@ export default function GuestPaymentsPage() {
 
   useEffect(() => {
     let mounted = true;
-    const authTimeout = setTimeout(() => {
-      if (mounted && loading) {
-        console.error('Auth check timed out, redirecting to login');
-        router.push("/login");
-      }
-    }, 10000);
 
-    checkAuth(mounted, authTimeout);
-
-    return () => {
-      mounted = false;
-      clearTimeout(authTimeout);
-    };
-  }, []);
-
-  async function checkAuth(mounted: boolean, authTimeout: NodeJS.Timeout) {
-    try {
-      const {
-        data: { user },
-        error
-      } = await supabase.auth.getUser();
-
-      if (!mounted) return;
-      clearTimeout(authTimeout);
-
-      if (error || !user) {
-        console.error('Auth error:', error);
-        router.push("/login");
-        return;
-      }
-
-      // Check if user is admin
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      if (profile?.role !== "admin") {
-        router.push("/");
-        return;
-      }
-
-      setIsAdmin(true);
-      await loadGuestPayments();
-      setLoading(false);
-    } catch (err) {
-      if (!mounted) return;
-      clearTimeout(authTimeout);
-      console.error('Auth check failed:', err);
-      router.push("/login");
+    const stored = getStoredSession();
+    if (!stored?.user) {
+      router.push('/login');
+      return;
     }
-  }
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `${supabaseUrl}/rest/v1/profiles?select=role&id=eq.${stored.user.id}`,
+          { headers: { 'Authorization': `Bearer ${stored.access_token}`, 'apikey': supabaseAnonKey } }
+        );
+        if (!mounted) return;
+        if (res.status === 401) { router.push('/login'); return; }
+        if (!res.ok) { router.push('/'); return; }
+        const profiles = await res.json();
+        if (!mounted) return;
+        if (profiles?.[0]?.role !== 'admin') { router.push('/'); return; }
+        setIsAdmin(true);
+        setLoading(false);
+        loadGuestPayments();
+      } catch {
+        if (mounted) router.push('/login');
+      }
+    })();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (!mounted) return;
+      if (event === 'SIGNED_OUT') router.push('/login');
+    });
+
+    return () => { mounted = false; subscription.unsubscribe(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function loadGuestPayments() {
     try {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient, getStoredSession, supabaseUrl, supabaseAnonKey } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
 interface TournamentMessage {
@@ -28,66 +28,42 @@ export default function TournamentMessagesPage() {
 
   useEffect(() => {
     let mounted = true;
-    const authTimeout = setTimeout(() => {
-      if (mounted && loading) {
-        console.error('Auth check timed out, redirecting to login');
-        router.push('/login');
+
+    const stored = getStoredSession();
+    if (!stored?.user) {
+      router.push('/login');
+      return;
+    }
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `${supabaseUrl}/rest/v1/profiles?select=role&id=eq.${stored.user.id}`,
+          { headers: { 'Authorization': `Bearer ${stored.access_token}`, 'apikey': supabaseAnonKey } }
+        );
+        if (!mounted) return;
+        if (res.status === 401) { router.push('/login'); return; }
+        if (!res.ok) { router.push('/'); return; }
+        const profiles = await res.json();
+        if (!mounted) return;
+        if (profiles?.[0]?.role !== 'admin') { router.push('/'); return; }
+        setUser(stored.user);
+        setIsAdmin(true);
+        setLoading(false);
+        loadMessages();
+      } catch {
+        if (mounted) router.push('/login');
       }
-    }, 10000);
+    })();
 
-    checkAuth(mounted, authTimeout);
-    loadMessages();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (!mounted) return;
+      if (event === 'SIGNED_OUT') router.push('/login');
+    });
 
-    return () => {
-      mounted = false;
-      clearTimeout(authTimeout);
-    };
+    return () => { mounted = false; subscription.unsubscribe(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  async function checkAuth(mounted: boolean, authTimeout: NodeJS.Timeout) {
-    try {
-      const {
-        data: { user },
-        error
-      } = await supabase.auth.getUser();
-
-      if (!mounted) return;
-      clearTimeout(authTimeout);
-
-      if (error) {
-        console.error('Auth error:', error);
-        router.push('/login');
-        return;
-      }
-
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-
-      setUser(user);
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (profile?.role !== 'admin') {
-        router.push('/');
-        return;
-      }
-
-      setIsAdmin(true);
-      setLoading(false);
-    } catch (err) {
-      if (!mounted) return;
-      clearTimeout(authTimeout);
-      console.error('Auth check failed:', err);
-      router.push('/login');
-    }
-  }
 
   async function loadMessages() {
     try {
@@ -287,6 +263,7 @@ export default function TournamentMessagesPage() {
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Enter tournament message with HTML formatting..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
                     rows={10}
                   />
                 </div>
@@ -337,6 +314,7 @@ export default function TournamentMessagesPage() {
                           value={editingText}
                           onChange={(e) => setEditingText(e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2 font-mono text-sm"
+                          style={{ color: '#111827', backgroundColor: '#ffffff' }}
                           rows={6}
                         />
                         <p className="text-sm text-gray-500 mb-2">Use HTML tags for formatting</p>

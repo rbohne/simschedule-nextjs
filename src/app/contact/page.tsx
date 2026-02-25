@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase";
+import { createClient, getStoredSession, supabaseUrl, supabaseAnonKey } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import type { Profile } from "@/types/database";
 
@@ -35,62 +35,38 @@ export default function ContactPage() {
 
   useEffect(() => {
     let mounted = true;
-    const authTimeout = setTimeout(() => {
-      if (mounted && loading) {
-        console.error('Auth check timed out, redirecting to login');
-        router.push("/login");
-      }
-    }, 10000);
 
-    checkAuth(mounted, authTimeout);
+    const stored = getStoredSession();
+    if (!stored?.user) {
+      router.push('/login');
+      return;
+    }
+
+    // Show the form immediately, then load full profile in background
+    setLoading(false);
+
+    // Load full profile for form pre-fill (uses Supabase client, may be slow on hard refresh)
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", stored.user.id)
+      .single()
+      .then(({ data: profile }) => {
+        if (!mounted) return;
+        if (profile) setCurrentUser(profile);
+      });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (!mounted) return;
+      if (event === 'SIGNED_OUT') router.push('/login');
+    });
 
     return () => {
       mounted = false;
-      clearTimeout(authTimeout);
+      subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  async function checkAuth(mounted: boolean, authTimeout: NodeJS.Timeout) {
-    try {
-      const {
-        data: { user },
-        error
-      } = await supabase.auth.getUser();
-
-      if (!mounted) return;
-      clearTimeout(authTimeout);
-
-      if (error) {
-        console.error('Auth error:', error);
-        router.push("/login");
-        return;
-      }
-
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-
-      // Get user profile
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (profile) {
-        setCurrentUser(profile);
-      }
-
-      setLoading(false);
-    } catch (err) {
-      if (!mounted) return;
-      clearTimeout(authTimeout);
-      console.error('Auth check failed:', err);
-      router.push("/login");
-    }
-  }
 
   async function handlePhotoSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient, getStoredSession } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
 export default function ProfilePage() {
@@ -18,52 +18,27 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let mounted = true;
-    const authTimeout = setTimeout(() => {
-      if (mounted && loading) {
-        console.error('Auth check timed out, redirecting to login');
-        router.push('/login')
-      }
-    }, 10000);
 
-    checkAuth(mounted, authTimeout)
+    const stored = getStoredSession();
+    if (!stored?.user) {
+      router.push('/login')
+      return
+    }
+
+    setUser(stored.user)
+    setLoading(false)
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (!mounted) return
+      if (event === 'SIGNED_OUT') router.push('/login')
+    });
 
     return () => {
       mounted = false;
-      clearTimeout(authTimeout);
+      subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  async function checkAuth(mounted: boolean, authTimeout: NodeJS.Timeout) {
-    try {
-      const {
-        data: { user },
-        error
-      } = await supabase.auth.getUser()
-
-      if (!mounted) return;
-      clearTimeout(authTimeout);
-
-      if (error) {
-        console.error('Auth error:', error);
-        router.push('/login')
-        return
-      }
-
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      setUser(user)
-      setLoading(false)
-    } catch (err) {
-      if (!mounted) return;
-      clearTimeout(authTimeout);
-      console.error('Auth check failed:', err);
-      router.push('/login')
-    }
-  }
 
   async function handlePasswordChange(e: React.FormEvent) {
     e.preventDefault()

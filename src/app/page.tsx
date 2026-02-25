@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { createClient } from "@/lib/supabase";
+import { createClient, getStoredSession } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import type { Simulator, Booking, Profile, GuestTransaction } from "@/types/database";
@@ -61,13 +61,9 @@ export default function Home() {
       'Content-Type': 'application/json'
     };
 
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-    } catch (e) {
-      console.error('[Auth] Failed to get session:', e);
+    const stored = getStoredSession();
+    if (stored?.access_token) {
+      headers['Authorization'] = `Bearer ${stored.access_token}`;
     }
 
     return headers;
@@ -144,88 +140,26 @@ export default function Home() {
   useEffect(() => {
     let mounted = true;
 
-    // Create a timeout to prevent hanging forever
-    const authTimeout = setTimeout(() => {
-      if (mounted && loading) {
-        console.error('Auth check timed out, cleaning up and redirecting to login');
-        // Clear storage before redirect to ensure clean state
-        if (typeof window !== 'undefined') {
-          const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token'];
-          storageKeys.forEach(key => {
-            try {
-              localStorage.removeItem(key);
-              sessionStorage.removeItem(key);
-            } catch (e) {
-              console.log('Storage clear error:', e);
-            }
-          });
-        }
-        router.push("/login");
-      }
-    }, 10000); // 10 second timeout
+    const stored = getStoredSession();
+    if (!stored?.user) {
+      router.push("/login");
+      return;
+    }
 
-    supabase.auth.getUser()
-      .then(({ data: { user }, error }) => {
-        if (!mounted) return;
+    setUser(stored.user);
+    loadUserProfile(stored.user.id);
+    loadUserBalance(stored.user.id);
+    loadTournamentMessages();
+    setLoading(false);
 
-        clearTimeout(authTimeout);
-
-        if (error) {
-          // Only log if it's not the expected "Auth session missing" error
-          if (error.message !== 'Auth session missing!') {
-            console.error('Auth error:', error);
-          }
-          // Clear storage on auth error before redirecting (except for normal "no session")
-          if (error.message !== 'Auth session missing!' && typeof window !== 'undefined') {
-            const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token'];
-            storageKeys.forEach(key => {
-              try {
-                localStorage.removeItem(key);
-                sessionStorage.removeItem(key);
-              } catch (e) {
-                console.log('Storage clear error:', e);
-              }
-            });
-          }
-          router.push("/login");
-          return;
-        }
-
-        if (!user) {
-          router.push("/login");
-        } else {
-          setUser(user);
-          loadUserProfile(user.id);
-          loadUserBalance(user.id);
-          loadTournamentMessages();
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (!mounted) return;
-        clearTimeout(authTimeout);
-        // Only log if it's not the expected "Auth session missing" error
-        if (err?.message !== 'Auth session missing!') {
-          console.error('Auth check failed:', err);
-        }
-        // Clear storage on error before redirecting (except for normal "no session")
-        if (err?.message !== 'Auth session missing!' && typeof window !== 'undefined') {
-          const storageKeys = ['supabase.auth.token', 'sb-uxtdsiqlzhzrwqyozuho-auth-token'];
-          storageKeys.forEach(key => {
-            try {
-              localStorage.removeItem(key);
-              sessionStorage.removeItem(key);
-            } catch (e) {
-              console.log('Storage clear error:', e);
-            }
-          });
-        }
-        router.push("/login");
-      });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (!mounted) return;
+      if (event === 'SIGNED_OUT') router.push('/login');
+    });
 
     return () => {
       mounted = false;
-      clearTimeout(authTimeout);
+      subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
