@@ -71,17 +71,21 @@ export default function GuestPaymentsPage() {
 
   async function loadGuestPayments() {
     try {
-      // Fetch all payment transactions (actual payments made by users)
-      const { data: transactionsData, error: transError } = await supabase
-        .from("user_transactions")
-        .select("*")
-        .eq("type", "payment")
-        .order("created_at", { ascending: false });
+      const stored = getStoredSession();
+      const authHeaders = { 'Authorization': `Bearer ${stored?.access_token}`, 'apikey': supabaseAnonKey };
 
-      if (transError) {
-        console.error("Error loading guest payments:", transError);
+      // Fetch all payment transactions
+      const transRes = await fetch(
+        `${supabaseUrl}/rest/v1/user_transactions?select=*&type=eq.payment&order=created_at.desc`,
+        { headers: authHeaders }
+      );
+
+      if (!transRes.ok) {
+        console.error("Error loading guest payments:", await transRes.text());
         return;
       }
+
+      const transactionsData = await transRes.json();
 
       if (!transactionsData || transactionsData.length === 0) {
         setPayments([]);
@@ -89,21 +93,23 @@ export default function GuestPaymentsPage() {
       }
 
       // Get unique user IDs
-      const userIds = [...new Set(transactionsData.map(t => t.user_id))];
-      const creatorIds = [...new Set(transactionsData.map(t => t.created_by).filter(Boolean))];
-      const allUserIds = [...new Set([...userIds, ...creatorIds])];
+      const userIds = [...new Set(transactionsData.map((t: any) => t.user_id))];
+      const creatorIds = [...new Set(transactionsData.map((t: any) => t.created_by).filter(Boolean))];
+      const allUserIds = [...new Set([...userIds, ...creatorIds])] as string[];
 
       // Fetch all profiles
-      const { data: profilesData } = await supabase
-        .from("profiles")
-        .select("id, name, email, profile_picture_url")
-        .in("id", allUserIds);
+      const profilesRes = await fetch(
+        `${supabaseUrl}/rest/v1/profiles?select=id,name,email,profile_picture_url&id=in.(${allUserIds.join(',')})`,
+        { headers: authHeaders }
+      );
+
+      const profilesData = profilesRes.ok ? await profilesRes.json() : [];
 
       // Create lookup map
-      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+      const profilesMap = new Map(profilesData.map((p: any) => [p.id, p]));
 
       // Combine the data
-      const enrichedPayments = transactionsData.map(transaction => ({
+      const enrichedPayments = transactionsData.map((transaction: any) => ({
         ...transaction,
         profile: profilesMap.get(transaction.user_id),
         creator: profilesMap.get(transaction.created_by),
