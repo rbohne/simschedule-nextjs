@@ -263,6 +263,7 @@ export default function MembershipInquiriesPage() {
           </div>
         ) : (
           <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-700">
               <thead className="bg-gray-900">
                 <tr>
@@ -370,6 +371,7 @@ export default function MembershipInquiriesPage() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>
