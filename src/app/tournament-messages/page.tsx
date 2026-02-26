@@ -221,8 +221,8 @@ export default function TournamentMessagesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="text-xl text-gray-100">Loading...</div>
       </div>
     )
   }
@@ -232,72 +232,71 @@ export default function TournamentMessagesPage() {
   }
 
   return (
-    <div className="min-h-screen py-8">
+    <div className="min-h-screen bg-gray-900 py-8">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Manage Home Page Messages</h1>
+          <h1 className="text-3xl font-bold mb-8 text-gray-100">Manage Home Page Messages</h1>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+            <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded mb-4">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
+            <div className="bg-green-900/50 border border-green-700 text-green-200 px-4 py-3 rounded mb-4">
               {success}
             </div>
           )}
 
           {/* Add New Message */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-semibold mb-4">Add New Message</h2>
+          <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-6 mb-8">
+            <h2 className="text-xl font-semibold mb-4 text-gray-100">Add New Message</h2>
 
             {/* HTML Formatting Guide */}
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
-              <h3 className="font-semibold text-blue-900 mb-2">HTML Formatting Guide:</h3>
-              <div className="text-sm text-blue-800 space-y-1">
-                <p><strong>Header:</strong> <code>&lt;h3&gt;Tournament Title&lt;/h3&gt;</code></p>
-                <p><strong>Bold:</strong> <code>&lt;strong&gt;Important text&lt;/strong&gt;</code></p>
-                <p><strong>Link:</strong> <code>&lt;a href="https://example.com" target="_blank"&gt;Click here&lt;/a&gt;</code></p>
-                <p><strong>Line break:</strong> <code>&lt;br/&gt;</code></p>
-                <p><strong>Paragraph:</strong> <code>&lt;p&gt;Your text&lt;/p&gt;</code></p>
+            <div className="bg-blue-900/30 border border-blue-700 rounded-md p-4 mb-4">
+              <h3 className="font-semibold text-blue-300 mb-2">HTML Formatting Guide:</h3>
+              <div className="text-sm text-blue-200 space-y-1">
+                <p><strong>Header:</strong> <code className="bg-gray-700 px-1 rounded">&lt;h3&gt;Tournament Title&lt;/h3&gt;</code></p>
+                <p><strong>Bold:</strong> <code className="bg-gray-700 px-1 rounded">&lt;strong&gt;Important text&lt;/strong&gt;</code></p>
+                <p><strong>Link:</strong> <code className="bg-gray-700 px-1 rounded">&lt;a href="https://example.com" target="_blank"&gt;Click here&lt;/a&gt;</code></p>
+                <p><strong>Line break:</strong> <code className="bg-gray-700 px-1 rounded">&lt;br/&gt;</code></p>
+                <p><strong>Paragraph:</strong> <code className="bg-gray-700 px-1 rounded">&lt;p&gt;Your text&lt;/p&gt;</code></p>
               </div>
             </div>
 
             <form onSubmit={handleAddMessage}>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">HTML Content:</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-300">HTML Content:</label>
                   <textarea
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Enter tournament message with HTML formatting..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm placeholder-gray-500"
                     rows={10}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Preview:</label>
-                  <div className="border border-gray-300 rounded-md p-3 bg-yellow-50 min-h-[250px]">
+                  <label className="block text-sm font-medium mb-2 text-gray-300">Preview:</label>
+                  <div className="border border-gray-600 rounded-md p-3 bg-gray-700 min-h-[250px]">
                     {newMessage ? (
                       <div
-                        className="tournament-message"
+                        className="tournament-message text-gray-100"
                         dangerouslySetInnerHTML={{ __html: newMessage }}
                       />
                     ) : (
-                      <p className="text-gray-400 italic">Preview will appear here...</p>
+                      <p className="text-gray-500 italic">Preview will appear here...</p>
                     )}
                   </div>
                 </div>
               </div>
-              <p className="text-sm text-gray-500 mt-2 mb-4">
+              <p className="text-sm text-gray-400 mt-2 mb-4">
                 You can use HTML tags for formatting. The message will be displayed on the home page.
               </p>
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                className="bg-blue-700 hover:bg-blue-600 text-white px-6 py-2 rounded-md transition-colors border border-blue-600"
               >
                 Add Message
               </button>
@@ -305,18 +304,18 @@ export default function TournamentMessagesPage() {
           </div>
 
           {/* Messages List */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Existing Messages</h2>
+          <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-100">Existing Messages</h2>
 
             {messages.length === 0 ? (
-              <p className="text-gray-500">No messages yet. Add your first tournament message above!</p>
+              <p className="text-gray-400">No messages yet. Add your first tournament message above!</p>
             ) : (
               <div className="space-y-4">
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
                     className={`border rounded-lg p-4 ${
-                      msg.is_active ? 'border-green-300 bg-green-50' : 'border-gray-300 bg-gray-50'
+                      msg.is_active ? 'border-green-700 bg-green-900/20' : 'border-gray-600 bg-gray-700/40'
                     }`}
                   >
                     {editingId === msg.id ? (
@@ -324,21 +323,20 @@ export default function TournamentMessagesPage() {
                         <textarea
                           value={editingText}
                           onChange={(e) => setEditingText(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2 font-mono text-sm"
-                          style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2 font-mono text-sm"
                           rows={6}
                         />
-                        <p className="text-sm text-gray-500 mb-2">Use HTML tags for formatting</p>
+                        <p className="text-sm text-gray-400 mb-2">Use HTML tags for formatting</p>
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleUpdateMessage(msg.id)}
-                            className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700"
+                            className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-1 rounded border border-blue-600"
                           >
                             Save
                           </button>
                           <button
                             onClick={cancelEditing}
-                            className="bg-gray-500 text-white px-4 py-1 rounded hover:bg-gray-600"
+                            className="bg-gray-600 hover:bg-gray-500 text-gray-100 px-4 py-1 rounded"
                           >
                             Cancel
                           </button>
@@ -346,41 +344,41 @@ export default function TournamentMessagesPage() {
                       </div>
                     ) : (
                       <div>
-                        <p className="text-gray-800 mb-2">{msg.message}</p>
+                        <p className="text-gray-200 mb-2">{msg.message}</p>
                         <div className="flex gap-2 text-sm">
                           <span
-                            className={`px-2 py-1 rounded ${
+                            className={`px-2 py-1 rounded border ${
                               msg.is_active
-                                ? 'bg-green-200 text-green-800'
-                                : 'bg-gray-200 text-gray-800'
+                                ? 'bg-green-900 text-green-300 border-green-700'
+                                : 'bg-gray-700 text-gray-300 border-gray-600'
                             }`}
                           >
                             {msg.is_active ? 'Active' : 'Inactive'}
                           </span>
-                          <span className="text-gray-500">
+                          <span className="text-gray-400 flex items-center">
                             Created: {new Date(msg.created_at).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="mt-3 flex gap-2">
                           <button
                             onClick={() => startEditing(msg)}
-                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                            className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm border border-blue-600"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => handleToggleActive(msg.id, msg.is_active)}
-                            className={`px-3 py-1 rounded text-sm ${
+                            className={`px-3 py-1 rounded text-sm text-white ${
                               msg.is_active
-                                ? 'bg-yellow-600 hover:bg-yellow-700'
-                                : 'bg-green-600 hover:bg-green-700'
-                            } text-white`}
+                                ? 'bg-yellow-700 hover:bg-yellow-600'
+                                : 'bg-green-700 hover:bg-green-600'
+                            }`}
                           >
                             {msg.is_active ? 'Deactivate' : 'Activate'}
                           </button>
                           <button
                             onClick={() => handleDeleteMessage(msg.id)}
-                            className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                            className="bg-red-800 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
                           >
                             Delete
                           </button>
