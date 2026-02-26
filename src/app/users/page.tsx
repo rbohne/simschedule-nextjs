@@ -262,6 +262,7 @@ export default function UsersPage() {
         role: editUser.role,
         profile_picture_url: profilePictureUrl,
         active_until: editUser.active_until,
+        restricted: editUser.restricted ?? false,
       };
 
       // Only include password if it's been set
@@ -744,6 +745,23 @@ export default function UsersPage() {
                 <p className="text-xs text-gray-400 mt-1">
                   Set the date until which the user's membership is active (typically 1 year from payment)
                 </p>
+              </div>
+
+              <div className="mb-6 p-4 bg-red-900/20 border border-red-700/50 rounded-lg">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editUser.restricted ?? false}
+                    onChange={(e) => setEditUser({ ...editUser, restricted: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-600 bg-gray-700 text-red-600 focus:ring-red-500"
+                  />
+                  <div>
+                    <span className="text-gray-100 font-medium">Restrict User</span>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Prevents this user from booking time slots. Use when outstanding guest fees exceed the limit.
+                    </p>
+                  </div>
+                </label>
               </div>
 
               <div className="flex gap-2">

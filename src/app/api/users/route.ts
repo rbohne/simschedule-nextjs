@@ -130,7 +130,7 @@ export async function PUT(request: Request) {
   }
 
   const body = await request.json()
-  const { userId, email, name, phone, role, profile_picture_url, active_until, password } = body
+  const { userId, email, name, phone, role, profile_picture_url, active_until, password, restricted } = body
 
   if (!userId || !email || !name || !phone) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -179,6 +179,11 @@ export async function PUT(request: Request) {
   // Only update active_until if it's provided
   if (active_until !== undefined) {
     updateData.active_until = active_until
+  }
+
+  // Update restricted if provided
+  if (restricted !== undefined) {
+    updateData.restricted = restricted
   }
 
   const { error: profileError } = await adminClient

@@ -9,6 +9,7 @@ export interface Profile {
   profile_picture_url: string | null
   active_until: string | null
   created_at: string
+  restricted?: boolean
 }
 
 export interface GuestTransaction {

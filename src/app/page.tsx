@@ -611,25 +611,36 @@ export default function Home() {
                 Select a simulator to view and book your time slots
               </p>
 
-              <div className="grid md:grid-cols-2 gap-8 mt-12">
-                <button
-                  onClick={() => selectSimulator("east")}
-                  className="bg-blue-900 hover:bg-blue-800 text-gray-100 rounded-lg p-12 text-center
+              {userProfile?.restricted ? (
+                <div className="mt-12 bg-red-900/40 border border-red-600 rounded-lg p-8 text-center max-w-2xl mx-auto">
+                  <div className="text-5xl mb-4">⚠️</div>
+                  <h3 className="text-2xl font-bold text-red-300 mb-3">Account Temporarily Restricted</h3>
+                  <p className="text-gray-300 leading-relaxed">
+                    Your account has been restricted due to outstanding guest fees that have exceeded the limit.
+                    Please contact your administrator to arrange payment as soon as possible to restore your booking access.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 gap-8 mt-12">
+                  <button
+                    onClick={() => selectSimulator("east")}
+                    className="bg-blue-900 hover:bg-blue-800 text-gray-100 rounded-lg p-12 text-center
     transition-transform hover:scale-105 shadow-lg border border-blue-700"
-                >
-                  <div className="text-6xl mb-4">📍</div>
-                  <h3 className="text-3xl font-bold">EAST SIM</h3>
-                </button>
+                  >
+                    <div className="text-6xl mb-4">📍</div>
+                    <h3 className="text-3xl font-bold">EAST SIM</h3>
+                  </button>
 
-                <button
-                  onClick={() => selectSimulator("west")}
-                  className="bg-green-900 hover:bg-green-800 text-gray-100 rounded-lg p-12 text-center
+                  <button
+                    onClick={() => selectSimulator("west")}
+                    className="bg-green-900 hover:bg-green-800 text-gray-100 rounded-lg p-12 text-center
     transition-transform hover:scale-105 shadow-lg border border-green-700"
-                >
-                  <div className="text-6xl mb-4">📍</div>
-                  <h3 className="text-3xl font-bold">WEST SIM</h3>
-                </button>
-              </div>
+                  >
+                    <div className="text-6xl mb-4">📍</div>
+                    <h3 className="text-3xl font-bold">WEST SIM</h3>
+                  </button>
+                </div>
+              )}
 
               {/* Active Membership Status */}
               {userProfile?.active_until && (
