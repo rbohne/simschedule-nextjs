@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient, getStoredSession, supabaseUrl, supabaseAnonKey } from '@/lib/supabase'
+import { getStoredSession, supabaseUrl, supabaseAnonKey } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
 interface TournamentMessage {
@@ -24,13 +24,18 @@ export default function TournamentMessagesPage() {
   const [success, setSuccess] = useState<string | null>(null)
 
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
     let mounted = true;
 
     const stored = getStoredSession();
     if (!stored?.user) {
+      router.push('/login');
+      return;
+    }
+
+    // Redirect immediately if access token is already expired (avoids slow 401 network round-trip)
+    if (stored.expires_at && Date.now() / 1000 > stored.expires_at) {
       router.push('/login');
       return;
     }
@@ -56,12 +61,15 @@ export default function TournamentMessagesPage() {
       }
     })();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (!mounted) return;
-      if (event === 'SIGNED_OUT') router.push('/login');
-    });
+    // Detect logout from other tabs (storage event only fires cross-tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'sb-uxtdsiqlzhzrwqyozuho-auth-token' && !e.newValue) {
+        if (mounted) router.push('/login');
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
 
-    return () => { mounted = false; subscription.unsubscribe(); };
+    return () => { mounted = false; window.removeEventListener('storage', handleStorageChange); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
