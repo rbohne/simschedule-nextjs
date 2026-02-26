@@ -415,7 +415,7 @@ export default function UsersPage() {
                     const isExpired = activeUntil && activeUntil <= new Date();
 
                     return (
-                      <tr key={user.id} className="hover:bg-gray-700 text-gray-200">
+                      <tr key={user.id} className={`text-gray-200 ${user.restricted ? 'bg-red-900/20 hover:bg-red-900/30 border-l-4 border-red-600' : 'hover:bg-gray-700'}`}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {user.profile_picture_url ? (
                             <img
@@ -434,7 +434,14 @@ export default function UsersPage() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {user.name}
+                          <div className="flex items-center gap-2">
+                            {user.name}
+                            {user.restricted && (
+                              <span className="px-2 py-0.5 text-xs rounded bg-red-900 text-red-300 border border-red-700">
+                                Restricted
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {user.email}
